@@ -1,0 +1,6 @@
+system/
+system_files/
+templates/
+backups/
+databases/
+logs/

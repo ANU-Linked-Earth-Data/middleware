@@ -1,0 +1,7 @@
+rdflib>=4,<5
+pytz>=2016.2
+SPARQLWrapper>=1.7.6,<1.8.0
+numpy
+# GDAL is a PITA to install. Might want to follow instructions at
+# http://gis.stackexchange.com/a/119565 if pip install doesn't work
+# GDAL>=2.0.1,<2.1.0
