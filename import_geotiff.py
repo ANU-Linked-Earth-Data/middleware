@@ -11,6 +11,7 @@ from rdflib import (ConjunctiveGraph, Literal, Namespace, OWL, RDF, RDFS, XSD,
                     URIRef, BNode)
 from urllib.parse import quote_plus
 import numpy as np
+from itertools import islice, chain
 
 GEO = Namespace('http://www.w3.org/2003/01/geo/wgs84_pos#')
 LS = Namespace('http://example.com/landsat#')
@@ -110,6 +111,18 @@ def build_graph(geotiff):
             (ident, LS.sensorValue, Literal(px_val)),
         ]
 
+
+def iterchunk(iterator, n):
+    """Chunk iterator into blocks of size n"""
+    it = iter(iterator)
+    while True:
+        chunk = islice(it, n)
+        try:
+            fst = next(chunk)
+        except StopIteration:
+            return
+        yield chain([fst], chunk)
+
 parser = ArgumentParser()
 parser.add_argument(
     'geotiff_file', type=str, help='Path to GeoTIFF file to load'
@@ -129,13 +142,14 @@ if __name__ == '__main__':
     geotiff_fp = gdal.Open(args.geotiff_file)
     graph_triples = build_graph(geotiff_fp)
 
-    fuseki = ConjunctiveGraph(store='SPARQLUpdateStore')
-    fuseki.open((args.query_url, args.update_url))
+    # Batch the triples so that Python doesn't asplode
+    for triples in slow(iterchunk(graph_triples, 10000), 'chunks'):
+        fuseki = ConjunctiveGraph(store='SPARQLUpdateStore')
+        fuseki.open((args.query_url, args.update_url))
 
-    add_namespaces(fuseki)
-    default = 'urn:x-arq:DefaultGraph'
-    # TODO: Need to add data in batches. AddN doesn't seem to do a SPARQL
-    # update until closing, which is obviously really silly when you have a
-    # bajillion pixels.
-    fuseki.addN((s, p, o, default) for s, p, o in graph_triples)
-    fuseki.close()
+        add_namespaces(fuseki)
+        default = 'urn:x-arq:DefaultGraph'
+        fuseki.addN((s, p, o, default) for s, p, o in triples)
+        fuseki.close()
+
+    print('Done')
