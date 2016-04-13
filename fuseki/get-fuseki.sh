@@ -10,7 +10,7 @@ URL="http://apache.mirror.serversaustralia.com.au/jena/binaries/apache-jena-fuse
 
 if [ ! -d "$DEST_DIR" ]; then
     echo "Calculating checksum for $DEST_TGZ"
-    if echo "$DEST_TGZ_MD5SUM" | md5sum -c -; then
+    if md5sum -c <(echo $DEST_TGZ_MD5SUM); then
         echo "$DEST_TGZ exists, and checksum is fine, skipping download"
     else
         echo "Re-downloading to $DEST_TGZ"
