@@ -52,6 +52,12 @@ BOILERPLATE_TURTLE = """
     rdfs:range xsd:dateTime;
     qb:concept sdmx-concept:refPeriod .
 
+:refArea a rdf:Property , qb:DimensionProperty;
+    rdfs:label "point of observation"@en;
+    rdfs:subPropertyOf sdmx-dimension:refArea;
+    rdfs:range geo:SpatialThing;
+    qb:concept sdmx-concept:refArea .
+
 :sensorValue a rdf:Property , qb:MeasureProperty ;
     rdfs:label "sensor reading value"@en ;
     rdfs:subPropertyOf sdmx-measure:obsValue ;
@@ -161,13 +167,16 @@ def build_graph(geotiff):
         ident_str = '{}-{}'.format(row, col)
         ident = URIRef(LS['observation-' + ident_str])
         lat, lon = undo_transform(row, col, gt)
-        loc_str = '{}, {}'.format(lat, lon)
+        loc_bnode = BNode()
 
         # First add data describing the accident
         yield from [
             (ident, RDF.type, QB.Observation),
             (ident, QB.dataSet, LS.landsatDS),
-            (ident, SDMXD.refArea, Literal(loc_str)),
+            (ident, SDMXD.refArea, loc_bnode),
+            (loc_bnode, RDF.type, GEO.Point),
+            (loc_bnode, GEO.lat, Literal(lat, datatype=XSD.decimal)),
+            (loc_bnode, GEO.lon, Literal(lon, datatype=XSD.decimal)),
             (ident, LS.refTime, Literal(gt_meta['datetime'])),
             (ident, LS.sensorValue, Literal(px_val, datatype=XSD.integer)),
         ]
