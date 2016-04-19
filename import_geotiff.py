@@ -58,6 +58,10 @@ BOILERPLATE_TURTLE = """
     rdfs:range geo:SpatialThing;
     qb:concept sdmx-concept:refArea .
 
+:etmBand a rdf:Property , qb:DimensionProperty;
+    rdfs:label "LandSat ETM observation band"@en;
+    rdfs:range xsd:integer .
+
 :sensorValue a rdf:Property , qb:MeasureProperty ;
     rdfs:label "sensor reading value"@en ;
     rdfs:subPropertyOf sdmx-measure:obsValue ;
@@ -149,37 +153,43 @@ def undo_transform(row, col, t):
     )
 
 
-def build_graph(geotiff):
-    """Generator producing all observation triples."""
-    boilerplate_graph = Graph().parse(
-        StringIO(BOILERPLATE_TURTLE), format='turtle'
-    )
-    yield from boilerplate_graph.triples((None, None, None))
-
-    band = geotiff.GetRasterBand(1)
-    gt = geotiff.GetGeoTransform()
-
-    filename, = geotiff.GetFileList()
-    gt_meta = parse_agdc_fn(filename)
-
-    # Produce one RDF datacube observation per triple
+def graph_for_band(band, band_num, gt_meta, transform):
+    """Process a single band in a GeoTIFF file."""
     for row, col, px_val in slow(pixel_iterator(band), 'pixels processed'):
         ident_str = '{}-{}'.format(row, col)
         ident = URIRef(LS['observation-' + ident_str])
-        lat, lon = undo_transform(row, col, gt)
+        lat, lon = undo_transform(row, col, transform)
         loc_bnode = BNode()
 
         # First add data describing the accident
         yield from [
             (ident, RDF.type, QB.Observation),
             (ident, QB.dataSet, LS.landsatDS),
-            (ident, SDMXD.refArea, loc_bnode),
+            (ident, LS.refArea, loc_bnode),
+            (ident, LS.etmBand, Literal(band_num, datatype=XSD.integer)),
             (loc_bnode, RDF.type, GEO.Point),
             (loc_bnode, GEO.lat, Literal(lat, datatype=XSD.decimal)),
             (loc_bnode, GEO.lon, Literal(lon, datatype=XSD.decimal)),
             (ident, LS.refTime, Literal(gt_meta['datetime'])),
             (ident, LS.sensorValue, Literal(px_val, datatype=XSD.integer)),
         ]
+
+
+def build_graph(geotiff):
+    """Generator producing all observation triples for each band."""
+    boilerplate_graph = Graph().parse(
+        StringIO(BOILERPLATE_TURTLE), format='turtle'
+    )
+    yield from boilerplate_graph.triples((None, None, None))
+
+    gt = geotiff.GetGeoTransform()
+    filename, = geotiff.GetFileList()
+    gt_meta = parse_agdc_fn(filename)
+
+    for band_num in range(1, geotiff.RasterCount + 1):
+        print('Processing band {}/{}'.format(band_num, geotiff.RasterCount))
+        band = geotiff.GetRasterBand(band_num)
+        yield from graph_for_band(band, band_num, gt_meta, gt)
 
 
 def iterchunk(iterator, n):
