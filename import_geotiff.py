@@ -8,6 +8,7 @@ from collections import namedtuple
 from datetime import datetime
 from io import StringIO
 from itertools import islice, chain
+from json import dumps
 import logging
 import re
 from urllib.parse import quote_plus
@@ -16,7 +17,7 @@ from osgeo import gdal
 import numpy as np
 import pytz
 from screw_rdflib import (ConjunctiveGraph, Literal, Namespace, OWL, RDF, RDFS,
-                          XSD, URIRef, BNode, Graph)
+                          XSD, URIRef, BNode, Graph, OWL)
 
 # RDF namespaces
 GEO = Namespace('http://www.w3.org/2003/01/geo/wgs84_pos#')
@@ -25,6 +26,7 @@ QB = Namespace('http://purl.org/linked-data/cube#')
 SDMXC = Namespace('http://purl.org/linked-data/sdmx/2009/concept#')
 SDMXD = Namespace('http://purl.org/linked-data/sdmx/2009/dimension#')
 SDMXM = Namespace('http://purl.org/linked-data/sdmx/2009/measure#')
+OGC = Namespace('http://www.opengis.net/ont/geosparql#')
 # For parsing AGDC filenames
 AGDC_RE = re.compile(
     r'^(?P<sat_id>[^_]+)_(?P<sensor_id>[^_]+)_(?P<prod_code>[^_]+)_'
@@ -45,6 +47,8 @@ BOILERPLATE_TURTLE = """
 @prefix sdmx-dimension: <{SDMXD}> .
 @prefix sdmx-measure: <{SDMXM}> .
 @prefix geo: <{GEO}> .
+@prefix owl: <{OWL}> .
+@prefix ogc: <{OGC}> .
 
 :refTime a rdf:Property , qb:DimensionProperty;
     rdfs:label "time of observation"@en;
@@ -54,8 +58,8 @@ BOILERPLATE_TURTLE = """
 
 :refArea a rdf:Property , qb:DimensionProperty;
     rdfs:label "point of observation"@en;
-    rdfs:subPropertyOf sdmx-dimension:refArea;
-    rdfs:range geo:SpatialThing;
+    rdfs:subPropertyOf ogc:asWKT;
+    rdfs:range ogc:wktLiteral;
     qb:concept sdmx-concept:refArea .
 
 :etmBand a rdf:Property , qb:DimensionProperty;
@@ -65,7 +69,12 @@ BOILERPLATE_TURTLE = """
 :sensorValue a rdf:Property , qb:MeasureProperty ;
     rdfs:label "sensor reading value"@en ;
     rdfs:subPropertyOf sdmx-measure:obsValue ;
-    rdfs:range xsd:integer .
+    # Strings represent serialised arrays as opposed to single sensor values.
+    # It's inelegant. Sue me.
+    rdfs:range [
+        a owl:Class ;
+        owl:unionOf (xsd:string xsd:integer xsd:float)
+    ] .
 
 :landsatDSD a qb:DataStructureDefinition ;
     qb:component [
@@ -85,7 +94,7 @@ BOILERPLATE_TURTLE = """
     rdfs:comment "Some data from LandSat, retrieved from AGDC"@en ;
     qb:structure :landsatDSD .
 """.format(QB=QB, SDMXD=SDMXD, SDMXM=SDMXM, LS=LS, GEO=GEO, SDMXC=SDMXC,
-           RDF=RDF, RDFS=RDFS, XSD=XSD)
+           RDF=RDF, RDFS=RDFS, XSD=XSD, OWL=OWL, OGC=OGC)
 
 
 def parse_agdc_fn(fn):
@@ -136,12 +145,31 @@ def slow(generator, suffix, interval=500, total=None):
         yield val
 
 
-def pixel_iterator(band):
-    """Iterator of (row, col, value) for valid pixels in band."""
+def tile_iterator(band, tile_size):
+    """Iterator of (top left row, top left col, data) for valid tiles in band
+    (starting at left side, rather than using some more sophisticated
+    scheme)."""
     value_arr = band.ReadAsArray()
-    valid_mask = band.GetMaskBand().ReadAsArray()
-    rows, cols = np.nonzero(valid_mask)
-    yield from zip(rows, cols, value_arr[(rows, cols)])
+    valid_mask = band.GetMaskBand().ReadAsArray().astype('bool')
+    for row in range(0, value_arr.shape[0], tile_size):
+        for col in range(0, value_arr.shape[1], tile_size):
+            if valid_mask[row:row+tile_size, col:col+tile_size].any():
+                vals = value_arr[row:row+tile_size, col:col+tile_size]
+                yield (row, col, vals)
+
+
+def array_to_literal(array):
+    """Turn an array into an RDF literal. Can use whatever representation, but
+    currently using JSON (...)"""
+    if array.size == 1:
+        if array.dtype.kind in ('u', 'i'):
+            dtype = XSD.integer
+        elif array.dtype.kind == 'f':
+            dtype = XSD.float
+        else:
+            dtype = None
+        return Literal(array.flat[0], datatype=dtype)
+    return Literal(dumps(array.tolist()))
 
 
 def undo_transform(row, col, t):
@@ -153,29 +181,44 @@ def undo_transform(row, col, t):
     )
 
 
-def graph_for_band(band, band_num, gt_meta, transform):
+def graph_for_band(band, band_num, tile_size, gt_meta, transform):
     """Process a single band in a GeoTIFF file."""
-    for row, col, px_val in slow(pixel_iterator(band), 'pixels processed'):
-        ident_str = '{}-{}'.format(row, col)
-        ident = URIRef(LS['observation-' + ident_str])
-        lat, lon = undo_transform(row, col, transform)
-        loc_bnode = BNode()
+    it = tile_iterator(band, tile_size)
+    for row, col, tile in slow(it, 'tiles processed', interval=10):
+        start_lat, start_lon = undo_transform(row, col, transform)
+        end_lat, end_lon = undo_transform(
+            row + tile_size, col + tile_size, transform
+        )
+        # Bounding box for the tile, which we'll convert into WKT
+        bbox_corners = [
+            (start_lon, start_lat), (start_lon, end_lat),
+            (end_lon, end_lat), (end_lon, start_lat)
+        ]
+        loc_wkt = Literal('POLYGON({0}, {1}, {2}, {3}, {0})'.format(
+            *['{} {}'.format(lon, lat) for lat, lon in bbox_corners]
+        ), datatype=OGC.wktLiteral)
+        lit_tile = array_to_literal(tile)
+        ident_str = 'lat/{}/lon/{}/tile-size/{}/band/{}'.format(
+            start_lat, start_lon, tile_size, band_num
+        )
+        ident = URIRef(LS['observation/' + ident_str])
 
         # First add data describing the accident
         yield from [
             (ident, RDF.type, QB.Observation),
             (ident, QB.dataSet, LS.landsatDS),
-            (ident, LS.refArea, loc_bnode),
+            (ident, LS.refArea, loc_wkt),
+            # Want asWKT as well so that normal triple stores can do geo
+            # queries without having to infer that refArea is a subclass of
+            # asWKT
+            (ident, OGC.asWKT, loc_wkt),
             (ident, LS.etmBand, Literal(band_num, datatype=XSD.integer)),
-            (loc_bnode, RDF.type, GEO.Point),
-            (loc_bnode, GEO.lat, Literal(lat, datatype=XSD.decimal)),
-            (loc_bnode, GEO.lon, Literal(lon, datatype=XSD.decimal)),
             (ident, LS.refTime, Literal(gt_meta['datetime'])),
-            (ident, LS.sensorValue, Literal(px_val, datatype=XSD.integer)),
+            (ident, LS.sensorValue, lit_tile),
         ]
 
 
-def build_graph(geotiff):
+def build_graph(geotiff, tile_sizes):
     """Generator producing all observation triples for each band."""
     boilerplate_graph = Graph().parse(
         StringIO(BOILERPLATE_TURTLE), format='turtle'
@@ -187,9 +230,12 @@ def build_graph(geotiff):
     gt_meta = parse_agdc_fn(filename)
 
     for band_num in range(1, geotiff.RasterCount + 1):
-        print('Processing band {}/{}'.format(band_num, geotiff.RasterCount))
         band = geotiff.GetRasterBand(band_num)
-        yield from graph_for_band(band, band_num, gt_meta, gt)
+        for tile_size in tile_sizes:
+            print('Processing band {}/{}, tile size {}'.format(
+                band_num, geotiff.RasterCount, tile_size
+            ))
+            yield from graph_for_band(band, band_num, tile_size, gt_meta, gt)
 
 
 def iterchunk(iterator, n):
@@ -216,15 +262,19 @@ parser.add_argument(
     '--update-url', type=str, default='http://localhost:3030/landsat/update',
     dest='update_url', help='Update URL for SPARQL endpoint'
 )
+parser.add_argument(
+    '--tile-sizes', type=int, default=[64, 128], nargs='+',
+    dest='tile_sizes', help='Sizes of tiles to output'
+)
 
 if __name__ == '__main__':
     args = parser.parse_args()
 
     geotiff_fp = gdal.Open(args.geotiff_file)
-    graph_triples = build_graph(geotiff_fp)
+    graph_triples = build_graph(geotiff_fp, args.tile_sizes)
 
     # Batch the triples so that Python doesn't asplode
-    for triples in slow(iterchunk(graph_triples, 10000), 'chunks'):
+    for triples in slow(iterchunk(graph_triples, 100), 'chunks'):
         fuseki = ConjunctiveGraph(store='SPARQLUpdateStore')
         fuseki.open((args.query_url, args.update_url))
         fuseki.addN((s, p, o, DEFAULT) for s, p, o in triples)
