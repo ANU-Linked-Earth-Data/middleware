@@ -8,7 +8,7 @@ update_url = 'http://localhost:3030/landsat/update'
 fuseki = ConjunctiveGraph(store='SPARQLUpdateStore')
 fuseki.open((query_url, update_url))
 
-@app.route('/query/landsat/<int:uid>')
+@app.route('/landsat/<int:uid>')
 def uid(uid):
     return str(uid)
 

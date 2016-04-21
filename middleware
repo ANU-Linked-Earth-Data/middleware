@@ -22,8 +22,8 @@ events {
 
 http {
     server {
-        location /entities {
-            proxy_pass http://localhost:5000;
+        location /entity/ {
+            proxy_pass http://localhost:5000/;
         }
         location / {
             proxy_pass http://localhost:3030;
@@ -32,7 +32,9 @@ http {
 }
 EOF
     ;;
-
+restart)
+    $0 stop && $0 start
+    ;;
 *)
     echo "Usage: $0 {start|stop|configure}"
     ;;
