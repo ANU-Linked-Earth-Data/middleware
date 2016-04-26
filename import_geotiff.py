@@ -4,11 +4,11 @@
 SPARQL."""
 
 from argparse import ArgumentParser, FileType
+from base64 import b64encode
 from collections import namedtuple
 from datetime import datetime
-from io import StringIO
+from io import StringIO, BytesIO
 from itertools import islice, chain
-from json import dumps
 import logging
 import re
 from urllib.parse import quote_plus
@@ -16,12 +16,13 @@ from urllib.parse import quote_plus
 from osgeo import gdal
 import numpy as np
 import pytz
+from scipy.misc import toimage
 from screw_rdflib import (ConjunctiveGraph, Literal, Namespace, OWL, RDF, RDFS,
                           XSD, URIRef, BNode, Graph, OWL)
 
 # RDF namespaces
 GEO = Namespace('http://www.w3.org/2003/01/geo/wgs84_pos#')
-LS = Namespace('http://example.com/landsat#')
+LED = Namespace('http://www.example.org/ANU-LED#')
 QB = Namespace('http://purl.org/linked-data/cube#')
 SDMXC = Namespace('http://purl.org/linked-data/sdmx/2009/concept#')
 SDMXD = Namespace('http://purl.org/linked-data/sdmx/2009/dimension#')
@@ -38,7 +39,7 @@ AGDC_RE = re.compile(
 DEFAULT = 'urn:x-arq:DefaultGraph'
 # Boilerplate turtles are the best turtles
 BOILERPLATE_TURTLE = """
-@prefix : <{LS}> .
+@prefix : <{LED}> .
 @prefix rdf: <{RDF}> .
 @prefix rdfs: <{RDFS}> .
 @prefix xsd: <{XSD}> .
@@ -49,51 +50,52 @@ BOILERPLATE_TURTLE = """
 @prefix geo: <{GEO}> .
 @prefix owl: <{OWL}> .
 @prefix ogc: <{OGC}> .
+@prefix gcmd-platform: <http://geobrain.laits.gmu.edu/ontology/2004/11/gcmd-platform.owl#> .
+@prefix gcmd-instrument: <http://geobrain.laits.gmu.edu/ontology/2004/11/gcmd-instrument.owl#> .
 
-:refTime a rdf:Property , qb:DimensionProperty;
-    rdfs:label "time of observation"@en;
-    rdfs:subPropertyOf sdmx-dimension:refPeriod;
-    rdfs:range xsd:dateTime;
-    qb:concept sdmx-concept:refPeriod .
+:landsatDSD a qb:DataStructureDefinition ;
+    qb:componentProperty :instrumentComponent
+                       , :positionComponent
+                       , :satelliteComponent
+                       , :timeComponent
+                       , :dataComponent
+                       , :etmBandComponent .
 
-:refArea a rdf:Property , qb:DimensionProperty;
-    rdfs:label "point of observation"@en;
-    rdfs:subPropertyOf ogc:asWKT;
-    rdfs:range ogc:wktLiteral;
-    qb:concept sdmx-concept:refArea .
+:landsatDS a owl:NamedIndividual, qb:DataSet ;
+    rdfs:label "Landsat sensor data"@en ;
+    rdfs:comment "Some data from LandSat, retrieved from AGDC"@en ;
+    qb:structure :landsatDSD ;
+    :instrument gcmd-instrument:SCANNER ;
+    :satellite gcmd-platform:LANDSAT-7 .
+
+:instrumentComponent a owl:NamedIndividual , qb:ComponentSpecification ;
+    qb:attribute :instrument .
+
+:positionComponent a owl:NamedIndividual , qb:ComponentSpecification ;
+    qb:dimension :location .
+
+:satelliteComponent a owl:NamedIndividual , qb:ComponentSpecification ;
+    qb:attribute :satellite .
+
+:timeComponent a owl:NamedIndividual , qb:ComponentSpecification ;
+    qb:dimension sdmx-dimension:timePeriod .
+
+:dataComponent a owl:NamedIndividual , qb:ComponentSpecification ;
+    qb:dimension :imageData .
+
+:etmBandComponnet a owl:NamedIndividual , qb:ComponentSpecification ;
+    qb:dimension :etmBand .
 
 :etmBand a rdf:Property , qb:DimensionProperty;
     rdfs:label "LandSat ETM observation band"@en;
     rdfs:range xsd:integer .
 
-:sensorValue a rdf:Property , qb:MeasureProperty ;
-    rdfs:label "sensor reading value"@en ;
-    rdfs:subPropertyOf sdmx-measure:obsValue ;
-    # Strings represent serialised arrays as opposed to single sensor values.
-    # It's inelegant. Sue me.
-    rdfs:range [
-        a owl:Class ;
-        owl:unionOf (xsd:string xsd:integer xsd:float)
-    ] .
+:instrument a owl:ObjectProperty, qb:AttributeProperty ;
+    rdfs:range gcmd-instrument:Instrument .
 
-:landsatDSD a qb:DataStructureDefinition ;
-    qb:component [
-        qb:dimension :refTime ;
-        qb:order 1
-    ] ;
-    qb:component [
-        qb:dimension sdmx-dimension:refArea ;
-        qb:order 2
-    ] ;
-    qb:component [
-        qb:measure :sensorValue ;
-    ] .
-
-:landsatDS a qb:DataSet ;
-    rdfs:label "Landsat sensor data"@en ;
-    rdfs:comment "Some data from LandSat, retrieved from AGDC"@en ;
-    qb:structure :landsatDSD .
-""".format(QB=QB, SDMXD=SDMXD, SDMXM=SDMXM, LS=LS, GEO=GEO, SDMXC=SDMXC,
+:satellite a owl:ObjectProperty, qb:AttributeProperty ;
+    rdfs:range gcmd-platform:PLATFORM .
+""".format(QB=QB, SDMXD=SDMXD, SDMXM=SDMXM, LED=LED, GEO=GEO, SDMXC=SDMXC,
            RDF=RDF, RDFS=RDFS, XSD=XSD, OWL=OWL, OGC=OGC)
 
 
@@ -158,19 +160,6 @@ def tile_iterator(band, tile_size):
                 yield (row, col, vals)
 
 
-def array_to_literal(array):
-    """Turn an array into an RDF literal. Can use whatever representation, but
-    currently using JSON (...)"""
-    if array.size == 1:
-        if array.dtype.kind in ('u', 'i'):
-            dtype = XSD.integer
-        elif array.dtype.kind == 'f':
-            dtype = XSD.float
-        else:
-            dtype = None
-        return Literal(array.flat[0], datatype=dtype)
-    return Literal(dumps(array.tolist()))
-
 
 def undo_transform(row, col, t):
     """Recover (lat, lon) pair from row and column of a GeoTIFF file with
@@ -179,6 +168,26 @@ def undo_transform(row, col, t):
         t[3] + col * t[4] + row * t[5],
         t[0] + col * t[1] + row * t[2]
     )
+
+
+def array_to_png(array):
+    """Turn a 2D array into a data: URI filled with PNG goodies :)"""
+    assert array.ndim == 2
+    im = toimage(array)
+    fp = BytesIO()
+    im.save(fp, format='png')
+    data = b64encode(fp.getvalue()).decode('utf-8')
+    return 'data:image/png;base64,' + data
+
+
+def loc_triples(subj, prop, lat, lon):
+    """Yield a bunch of triples indicating that something is at a given
+    latitude and longitude. This is actually really painful because of
+    blank nodes :("""
+    loc_bnode = BNode()
+    yield (subj, prop, loc_bnode)
+    yield (loc_bnode, GEO.lat, Literal(lat, datatype=XSD.decimal))
+    yield (loc_bnode, GEO.lon, Literal(lon, datatype=XSD.decimal))
 
 
 def graph_for_band(band, band_num, tile_size, gt_meta, transform):
@@ -197,25 +206,36 @@ def graph_for_band(band, band_num, tile_size, gt_meta, transform):
         loc_wkt = Literal('POLYGON({0}, {1}, {2}, {3}, {0})'.format(
             *['{} {}'.format(lon, lat) for lat, lon in bbox_corners]
         ), datatype=OGC.wktLiteral)
-        lit_tile = array_to_literal(tile)
+        png_tile = URIRef(array_to_png(tile))
         ident_str = 'lat/{}/lon/{}/tile-size/{}/band/{}'.format(
             start_lat, start_lon, tile_size, band_num
         )
-        ident = URIRef(LS['observation/' + ident_str])
+        ident = URIRef(LED['observation/' + ident_str])
 
         # First add data describing the accident
         yield from [
             (ident, RDF.type, QB.Observation),
-            (ident, QB.dataSet, LS.landsatDS),
-            (ident, LS.refArea, loc_wkt),
-            # Want asWKT as well so that normal triple stores can do geo
-            # queries without having to infer that refArea is a subclass of
-            # asWKT
+            (ident, QB.dataSet, LED.landsatDS),
             (ident, OGC.asWKT, loc_wkt),
-            (ident, LS.etmBand, Literal(band_num, datatype=XSD.integer)),
-            (ident, LS.refTime, Literal(gt_meta['datetime'])),
-            (ident, LS.sensorValue, lit_tile),
+            (ident, LED.etmBand, Literal(band_num, datatype=XSD.integer)),
+            (ident, SDMXD.timePeriod, Literal(gt_meta['datetime'])),
+            (ident, LED.imageData, png_tile),
+            (ident, LED.pixelWidth,
+                Literal(tile.shape[1], datatype=XSD.integer)),
+            (ident, LED.pixelHeight,
+                Literal(tile.shape[0], datatype=XSD.integer)),
         ]
+
+        # Yield the centre point
+        yield from loc_triples(
+            ident, LED.location,
+            (end_lat + start_lat) / 2,
+            (end_lon + start_lon) / 2
+        )
+
+        # Yield each of the corners
+        for lon, lat in bbox_corners:
+            yield from loc_triples(ident, LED.corner, lat, lon)
 
 
 def build_graph(geotiff, tile_sizes):
