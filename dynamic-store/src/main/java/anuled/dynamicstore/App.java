@@ -1,22 +1,15 @@
 package anuled.dynamicstore;
 
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.impl.ModelCom;
 
 /**
  * Jena version of hello world
- *
  */
-public class App
-{
-    public static void main( String[] args )
-    {
-        Model model = ModelFactory.createDefaultModel();
-        model.add(model.createStatement(
-            model.createResource("http://this.hello/world#"),
-            model.createProperty("http://foo.bar/baz#", "is"),
-            model.createLiteral("Enterprise quality!", true)
-        ));
-        model.write(System.out, "RDF/XML-ABBREV");
-    }
+public class App {
+	public static void main(String[] args) {
+		LandsatGraph graph = new LandsatGraph();
+		Model model = new ModelCom(graph);
+		model.write(System.out, "TURTLE");
+	}
 }
