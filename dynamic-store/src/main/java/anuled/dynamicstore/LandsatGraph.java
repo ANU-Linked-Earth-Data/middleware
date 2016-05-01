@@ -8,7 +8,11 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
+import org.apache.jena.vocabulary.XSD;
 
+import anuled.vocabulary.GCMDInstrument;
+import anuled.vocabulary.GCMDPlatform;
 import anuled.vocabulary.QB;
 
 /**
@@ -24,16 +28,25 @@ public final class LandsatGraph extends GraphBase {
 	 */
 	private Model dataCubeMeta;
 	private Resource qbStructure;
+	private final String prefix = "http://www.example.org/ANU-LED-example#";
 
 	public LandsatGraph() {
 		super();
-		final String prefix = "http://www.example.org/ANU-LED-example#";
 		dataCubeMeta = ModelFactory.createDefaultModel();
 		qbStructure = dataCubeMeta.createResource(prefix + "landsatDataStructure")
 				.addProperty(RDF.type, QB.DataStructureDefinition);
 		dataCubeMeta.createResource(prefix + "landsatData")
 				.addProperty(RDF.type, QB.DataSet)
 				.addProperty(QB.structure, qbStructure);
+		Resource instrumentAP = addAttributeProperty("instrument", GCMDInstrument.ETM);
+		Resource satelliteAP = addAttributeProperty("satellite", GCMDPlatform.LANDSAT);
+		Resource timeAP = addAttributeProperty("time", XSD.dateTimeStamp);
+		Resource bandAP = addAttributeProperty("band", XSD.integer);
+	}
+	
+	private Resource addAttributeProperty(String name, Resource range) {
+		return dataCubeMeta.createResource(prefix + name)
+				.addProperty(RDFS.range, range);
 	}
 
 	@Override
