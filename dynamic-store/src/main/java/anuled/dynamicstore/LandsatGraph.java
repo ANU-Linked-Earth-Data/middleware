@@ -36,6 +36,11 @@ public final class LandsatGraph extends GraphBase {
 
 	public LandsatGraph() {
 		super();
+		initMeta();
+	}
+	
+	/** Initialise metadata associated with this dataset. */
+	private void initMeta() {
 		// TODO: Make these dynamic/customisable. Should probably just use a
 		// Turtle file for metadata
 		Resource instrumentAP = addAttributeProperty("instrument",
@@ -90,6 +95,12 @@ public final class LandsatGraph extends GraphBase {
 		return rv;
 	}
 
+	/**
+	 * This is the only method we implement at the moment. The SPARQL layers of
+	 * Jena can work with this, but it will be very slow. Ideally we need to
+	 * implement an opExecutor or something which does the appropriate
+	 * optimisations for our graph.
+	 */
 	@Override
 	protected ExtendedIterator<Triple> graphBaseFind(Triple trip) {
 		StmtIterator metaStmts = dataCubeMeta.listStatements();
