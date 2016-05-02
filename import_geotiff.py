@@ -54,47 +54,50 @@ BOILERPLATE_TURTLE = """
 @prefix gcmd-instrument: <http://geobrain.laits.gmu.edu/ontology/2004/11/gcmd-instrument.owl#> .
 
 :landsatDSD a qb:DataStructureDefinition ;
-    qb:componentProperty :instrumentComponent
-                       , :positionComponent
-                       , :satelliteComponent
-                       , :timeComponent
-                       , :dataComponent
-                       , :etmBandComponent .
+    qb:component :instrumentComponent
+               , :positionComponent
+               , :satelliteComponent
+               , :timeComponent
+               , :dataComponent
+               , :etmBandComponent .
 
-:landsatDS a owl:NamedIndividual, qb:DataSet ;
+:landsatDS a qb:DataSet ;
     rdfs:label "Landsat sensor data"@en ;
     rdfs:comment "Some data from LandSat, retrieved from AGDC"@en ;
     qb:structure :landsatDSD ;
     :instrument gcmd-instrument:SCANNER ;
     :satellite gcmd-platform:LANDSAT-7 .
 
-:instrumentComponent a owl:NamedIndividual , qb:ComponentSpecification ;
+:instrumentComponent a qb:ComponentSpecification ;
     qb:attribute :instrument .
 
-:positionComponent a owl:NamedIndividual , qb:ComponentSpecification ;
+:positionComponent a qb:ComponentSpecification ;
     qb:dimension :location .
 
-:satelliteComponent a owl:NamedIndividual , qb:ComponentSpecification ;
+:satelliteComponent a qb:ComponentSpecification ;
     qb:attribute :satellite .
 
-:timeComponent a owl:NamedIndividual , qb:ComponentSpecification ;
-    qb:dimension sdmx-dimension:timePeriod .
+:timeComponent a qb:ComponentSpecification ;
+    qb:dimension :time .
 
-:dataComponent a owl:NamedIndividual , qb:ComponentSpecification ;
+:dataComponent a qb:ComponentSpecification ;
     qb:dimension :imageData .
 
-:etmBandComponnet a owl:NamedIndividual , qb:ComponentSpecification ;
+:etmBandComponnet a qb:ComponentSpecification ;
     qb:dimension :etmBand .
 
-:etmBand a rdf:Property , qb:DimensionProperty;
+:etmBand a qb:AttributeProperty ;
     rdfs:label "LandSat ETM observation band"@en;
     rdfs:range xsd:integer .
 
-:instrument a owl:ObjectProperty, qb:AttributeProperty ;
+:instrument a qb:AttributeProperty ;
     rdfs:range gcmd-instrument:Instrument .
 
-:satellite a owl:ObjectProperty, qb:AttributeProperty ;
+:satellite a qb:AttributeProperty ;
     rdfs:range gcmd-platform:PLATFORM .
+
+:time a qb:AttributeProperty ;
+    rdfs:range xsd:dateTime .
 """.format(QB=QB, SDMXD=SDMXD, SDMXM=SDMXM, LED=LED, GEO=GEO, SDMXC=SDMXC,
            RDF=RDF, RDFS=RDFS, XSD=XSD, OWL=OWL, OGC=OGC)
 
@@ -211,19 +214,22 @@ def graph_for_band(band, band_num, tile_size, gt_meta, transform):
             start_lat, start_lon, tile_size, band_num
         )
         ident = URIRef(LED['observation/' + ident_str])
+        # Woooo this makes no sense
+        res = np.mean(np.abs([
+            tile.shape[1] / (start_lat - end_lat),
+            tile.shape[0] / (start_lon - end_lon)
+        ]))
 
         # First add data describing the accident
         yield from [
             (ident, RDF.type, QB.Observation),
             (ident, QB.dataSet, LED.landsatDS),
-            (ident, OGC.asWKT, loc_wkt),
+            (ident, LED.bounds, loc_wkt),
             (ident, LED.etmBand, Literal(band_num, datatype=XSD.integer)),
-            (ident, SDMXD.timePeriod, Literal(gt_meta['datetime'])),
+            (ident, LED.time, Literal(gt_meta['datetime'])),
             (ident, LED.imageData, png_tile),
-            (ident, LED.pixelWidth,
-                Literal(tile.shape[1], datatype=XSD.integer)),
-            (ident, LED.pixelHeight,
-                Literal(tile.shape[0], datatype=XSD.integer)),
+            (ident, LED.resolution,
+                Literal(res, datatype=XSD.decimal))
         ]
 
         # Yield the centre point
@@ -232,10 +238,6 @@ def graph_for_band(band, band_num, tile_size, gt_meta, transform):
             (end_lat + start_lat) / 2,
             (end_lon + start_lon) / 2
         )
-
-        # Yield each of the corners
-        for lon, lat in bbox_corners:
-            yield from loc_triples(ident, LED.corner, lat, lon)
 
 
 def build_graph(geotiff, tile_sizes):
