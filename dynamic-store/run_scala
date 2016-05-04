@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+
+# Quick hack script to start a Scala repl using the current Maven libs. I use
+# this to play around with Java libraries.
+
+# Apparently Java is getting a real REPL in v9 (!!), but that's still some way
+# off :(
+
+DEP_DIR=target/dependency/
+MVN_CMD="mvn dependency:copy-dependencies"
+
+if [ ! -d "$DEP_DIR" ]; then
+    echo "Couldn't find dependencies in $DEP_DIR"
+    while [ true ]; do
+        read -p "Want to run '$MVN_CMD' to copy them over? [y/n] " yn
+        case "$yn" in
+            y) $MVN_CMD; break;;
+            n) echo "Okay, exiting"; exit;;
+            *) echo "Unrecognised input. Try y or n."
+        esac
+    done
+fi
+
+classpath="$(find "$DEP_DIR" -name '*.jar' -printf '%p:')"
+echo "Detected classpath: '$classpath'"
+exec scala -J-Xmx1g -cp "$classpath"
