@@ -46,6 +46,15 @@ public class TileReader {
 		return retArray[0];
 	}
 	
+	public class Pixel {
+		public short[]  pixel;
+		public double[] latlong;
+		public Pixel(int row, int col) {
+			this.pixel   = TileReader.this.pixel(row, col);
+			this.latlong = TileReader.this.pixelLatLon(row, col);
+		}
+	}
+	
 	public short[] pixel(int row, int col) {
 		short[] pixel = new short[bands]; 
 		for(int b = 0; b < bands; b ++) {
@@ -54,13 +63,13 @@ public class TileReader {
 		return pixel;
 	}
 	
-	public Iterator<short[]> pixels() {
-		return new Iterator<short[]>() {
+	public Iterator<Pixel> pixels() {
+		return new Iterator<Pixel>() {
 			private int row = 0, col = 0;
 			
 			@Override
-			public short[] next() {
-				short[] pixel = pixel(row, col);
+			public Pixel next() {
+				Pixel pixel = new Pixel(row, col);
 				
 				if(row < pixelWidth)
 					row ++;
