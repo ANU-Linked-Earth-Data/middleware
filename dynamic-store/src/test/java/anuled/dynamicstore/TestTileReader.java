@@ -25,7 +25,7 @@ public class TestTileReader extends TestCase {
 	
 	@Test
 	public void testSize() {
-		assertEquals(reader.pixelHeight(), 32);
-		assertEquals(reader.pixelWidth(), 32);
+		assertEquals(reader.pixelHeight, 32);
+		assertEquals(reader.pixelWidth, 32);
 	}
 }

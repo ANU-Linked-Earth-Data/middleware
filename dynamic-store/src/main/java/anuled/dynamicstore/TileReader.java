@@ -3,6 +3,8 @@ package anuled.dynamicstore;
 // gdal gdal? gdal. gdal gdal gdal gdal!
 import org.gdal.gdal.gdal;
 
+import anuled.dynamicstore.TileReader.Pixel;
+
 import java.util.Iterator;
 
 import org.gdal.gdal.Band;
@@ -13,12 +15,20 @@ import org.gdal.gdal.Dataset;
  * manipulating it.
  */
 public class TileReader {
-	private Dataset dataset;
-	private int     bands;
-	private int     pixelWidth;
-	private int     pixelHeight;
+	
+	public static void main(String[] args) {
+		TileReader tr = new TileReader(args[0]);
+		for (Pixel pixel : tr.pixels()) {
+			System.out.println(pixel.toString());
+		}
+	}
+	
+	public Dataset  dataset;
+	public int      bands;
+	public int      pixelWidth;
+	public int      pixelHeight;
 	/** Affine transform coefficients **/
-	private double[] transform;
+	public double[] transform;
 	
 	public TileReader(String filename) {
 		dataset   = gdal.Open(filename);
@@ -47,9 +57,20 @@ public class TileReader {
 	}
 	
 	public class Pixel {
+		public int row, col;
 		public short[]  pixel;
 		public double[] latlong;
+		
+		@Override
+		public String toString() {
+			return "Pixel(" + 
+					latlong[0] + "N , " + latlong[1] + "W, " + 
+					shortsAsHex(pixel) + ")";
+		}
+		
 		public Pixel(int row, int col) {
+			this.row     = row;
+			this.col     = col;
 			this.pixel   = TileReader.this.pixel(row, col);
 			this.latlong = TileReader.this.pixelLatLon(row, col);
 		}
@@ -63,28 +84,45 @@ public class TileReader {
 		return pixel;
 	}
 	
-	public Iterator<Pixel> pixels() {
-		return new Iterator<Pixel>() {
-			private int row = 0, col = 0;
-			
+	/**
+	 * Iterable over all pixels in this TileReader
+	 */
+	public Iterable<Pixel> pixels() {
+		return new Iterable<TileReader.Pixel>() {
 			@Override
-			public Pixel next() {
-				Pixel pixel = new Pixel(row, col);
-				
-				if(row < pixelWidth)
-					row ++;
-				else
-					row = 0;
-					col ++;
+			public Iterator<Pixel> iterator() {
+				return new Iterator<Pixel>() {
+					private int row = 0, col = 0;
 					
-				return pixel;
-			}
-			
-			@Override
-			public boolean hasNext() {
-				return col < pixelHeight;
+					@Override
+					public Pixel next() {
+						Pixel pixel = new Pixel(row, col);
+						
+						if(row < pixelWidth)
+							row ++;
+						else
+							row = 0;
+							col ++;
+							
+						return pixel;
+					}
+					
+					@Override
+					public boolean hasNext() {
+						return col < pixelHeight;
+					}
+				};
 			}
 		};
 	}
+	
+	public static String shortsAsHex(short[] thing) {
+		StringBuilder builder = new StringBuilder("0x");
+		for(short s : thing) {
+			builder.append(Integer.toHexString(s & 0xffff));
+		}
+		return "0x" + builder.toString();
+	}
+
 }
 
