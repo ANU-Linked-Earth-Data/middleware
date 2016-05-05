@@ -2,6 +2,7 @@ package anuled.dynamicstore;
 
 import java.util.function.Function;
 
+import org.apache.jena.graph.FrontsTriple;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.graph.impl.GraphBase;
 import org.apache.jena.rdf.model.Model;
@@ -105,7 +106,7 @@ public final class LandsatGraph extends GraphBase {
 	protected ExtendedIterator<Triple> graphBaseFind(Triple trip) {
 		StmtIterator metaStmts = dataCubeMeta.listStatements();
 		// TODO: Concatenate with iterator over triples from data itself
-		return metaStmts.mapWith(stmt -> stmt.asTriple());
+		return metaStmts.mapWith(FrontsTriple::asTriple);
 	}
 
 }
