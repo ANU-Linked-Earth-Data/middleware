@@ -30,6 +30,11 @@
 		    <artifactId>spark-core</artifactId>
 		    <version>2.5</version>
 		</dependency>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>2.5</version>
+		</dependency>
 	</dependencies>
 	<repositories>
 		<!-- imageio-ext repo includes some nice libs for interfacing with GeoTIFF -->
