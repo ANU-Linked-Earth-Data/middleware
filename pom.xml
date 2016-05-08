@@ -7,7 +7,6 @@
 	<version>1.0-SNAPSHOT</version>
 	<name>middleware</name>
 	<url>http://maven.apache.org</url>
-
 	<modules>
 		<module>
 			dynamic-store
