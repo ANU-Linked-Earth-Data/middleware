@@ -4,5 +4,5 @@ addons:
         packages:
             - libgdal-dev
             - libgdal-java
-jdk:
-    - oraclejdk8
+# jdk:
+#     - oraclejdk8
