@@ -12,7 +12,7 @@ stop)
 configure)
     set -e
     site_name=fuseki-landsat
-    sudo cp -v "nginx/$site_name" /etc/ninx/sites-available
+    sudo cp -v "nginx/$site_name" /etc/nginx/sites-available
     sudo ln -sv "/etc/nginx/sites-available/$site_name" "/etc/nginx/sites-enabled/$site_name"
     ;;
 restart)
