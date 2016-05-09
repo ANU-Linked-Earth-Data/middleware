@@ -4,33 +4,16 @@ start)
     set -e
     sudo systemctl start nginx
     nohup fuseki/run-fuseki.sh   > .fuseki.log  2>&1 & echo $! > .fuseki.pid
-    nohup ./notelda.py runserver > .notelda.log 2>&1 & echo $! > .notelda.pid
     ;;
 stop)
     sudo systemctl stop nginx
     kill $(cat .fuseki.pid)  && rm .fuseki.pid
-    kill $(cat .notelda.pid) && rm .notelda.pid
     ;;
 configure)
-
-    sudo tee "/etc/nginx/nginx.conf" > /dev/null << EOF
-worker_processes 4;
-
-events {
-    worker_connections 768;
-}
-
-http {
-    server {
-        location /entity/ {
-            proxy_pass http://localhost:5000/;
-        }
-        location / {
-            proxy_pass http://localhost:3030;
-        }
-    }
-}
-EOF
+    set -e
+    site_name=fuseki-landsat
+    sudo cp -v "nginx/$site_name" /etc/ninx/sites-available
+    sudo ln -sv "/etc/nginx/sites-available/$site_name" "/etc/nginx/sites-enabled/$site_name"
     ;;
 restart)
     $0 stop && $0 start

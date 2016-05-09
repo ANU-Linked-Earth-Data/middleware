@@ -1,0 +1,16 @@
+# Config to redirect SPARQL queries for Landsat data to Fuseki
+server {
+    listen 80;
+
+    location /landsat/query {
+        proxy_pass http://localhost:3030/;
+
+        # This lets whatever we're redirecting to see what the actual client IP
+        # is.
+        # proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+    }
+}
