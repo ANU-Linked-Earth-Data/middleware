@@ -3,7 +3,7 @@ server {
     listen 80;
 
     location /landsat/query {
-        proxy_pass http://localhost:3030/;
+        proxy_pass http://127.0.0.1:3030/landsat/query;
 
         # This lets whatever we're redirecting to see what the actual client IP
         # is.
