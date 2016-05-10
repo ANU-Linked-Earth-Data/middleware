@@ -35,8 +35,9 @@ AGDC_RE = re.compile(
     r'(?P<day>\d{2})T(?P<hour>\d+)-(?P<minute>\d+)-(?P<second>\d+(\.\d+)?)'
     r'\.tif$'
 )
-# To select default graph in Jena
-DEFAULT = 'urn:x-arq:DefaultGraph'
+# Default graph to update (doesn't really matter because default graph on query
+# is union of all named graphs)
+DEFAULT = LED.lsGraph
 # Boilerplate turtles are the best turtles
 BOILERPLATE_TURTLE = """
 @prefix : <{LED}> .
@@ -206,8 +207,8 @@ def graph_for_band(band, band_num, tile_size, gt_meta, transform):
             (start_lon, start_lat), (start_lon, end_lat),
             (end_lon, end_lat), (end_lon, start_lat)
         ]
-        loc_wkt = Literal('POLYGON({0}, {1}, {2}, {3}, {0})'.format(
-            *['{} {}'.format(lon, lat) for lat, lon in bbox_corners]
+        loc_wkt = Literal('POLYGON(({0}, {1}, {2}, {3}, {0}))'.format(
+            *['{} {}'.format(lat, lon) for lat, lon in bbox_corners]
         ), datatype=OGC.wktLiteral)
         png_tile = URIRef(array_to_png(tile))
         ident_str = 'lat/{}/lon/{}/tile-size/{}/band/{}'.format(

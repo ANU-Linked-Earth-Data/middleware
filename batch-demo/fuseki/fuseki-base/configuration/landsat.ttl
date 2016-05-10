@@ -1,21 +1,39 @@
-@prefix :      <http://base/#> .
-@prefix tdb:   <http://jena.hpl.hp.com/2008/tdb#> .
-@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix ja:    <http://jena.hpl.hp.com/2005/11/Assembler#> .
-@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix fuseki: <http://jena.apache.org/fuseki#> .
+@prefix :        <http://base/#> .
+@prefix tdb:     <http://jena.hpl.hp.com/2008/tdb#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix ja:      <http://jena.hpl.hp.com/2005/11/Assembler#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix fuseki:  <http://jena.apache.org/fuseki#> .
+@prefix spatial: <http://jena.apache.org/spatial#> .
+@prefix led:     <http://www.example.org/ANU-LED#> .
 
-:dataset a tdb:DatasetTDB
-    ; tdb:location "DB" 
-    ; ja:defaultGraph <#landsat>
-    .
+:dataset a tdb:DatasetTDB ;
+    tdb:location "DB" ;
+    # unionDefaultGraph true <==> the default graph should be the union of all
+    # named graphs
+    tdb:unionDefaultGraph true .
+
+:spatial_dataset a spatial:SpatialDataset ;
+    spatial:dataset :dataset ;
+    spatial:index :indexLucene .
+
+:indexLucene a spatial:SpatialIndexLucene ;
+    spatial:directory <file:../../Lucene> ;
+    spatial:definition :spatialDef .
+
+:spatialDef a spatial:EntityDefinition ;
+    spatial:entityField "uri" ;
+    spatial:geoField "geo" ;
+    spatial:hasWKTPredicates (led:bounds) ;
+    spatial:spatialContextFactory
+         "com.spatial4j.core.context.jts.JtsSpatialContextFactory" .
 
 :landsat a fuseki:Service ;
-        fuseki:dataset                :dataset ;
-        fuseki:name                   "landsat" ;
-        fuseki:serviceQuery           "query" , "sparql" ;
-        fuseki:serviceReadGraphStore  "get" ;
-        fuseki:serviceReadWriteGraphStore
-                "data" ;
-        fuseki:serviceUpdate          "update" ;
-        fuseki:serviceUpload          "upload" .
+    rdfs:label "TDB-backed Landsat database with spatial index" ;
+    fuseki:dataset :spatial_dataset ;
+    fuseki:name "landsat" ;
+    fuseki:serviceQuery "query" , "sparql" ;
+    fuseki:serviceReadGraphStore "get" ;
+    fuseki:serviceReadWriteGraphStore "data" ;
+    fuseki:serviceUpdate "update" ;
+    fuseki:serviceUpload "upload" .
