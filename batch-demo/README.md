@@ -1,7 +1,6 @@
 # Batch-loading middleware demo
 
-This directory contains an offline implementation of our new RDF data cube
-architecture for delivering satellite coverage data. Unlike
+This directory contains an offline implementation of our new RDF data cube architecture for delivering satellite coverage data. Unlike our new dynamic implementation, which generates RDF triples corresponding to satellite observations on the fly, the code in this directory produces all possible triples in one go, and sticks them in a triple store (Fuseki) for later querying. This was very easy to implement, and is suitable for prototyping, but will not scale to larger amounts of data.
 
 The following steps should get this running on your own machine:
 
