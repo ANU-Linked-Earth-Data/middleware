@@ -15,6 +15,11 @@ public class API {
         	res.type("text/html");
         	return "observationId = " + req.params("id");
         });
+        
+        Spark.get("/obs/query/:query", (Request req, Response res) -> {
+        	res.type("application/json");
+        	return "{}";
+        });
 
     }
     
