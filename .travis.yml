@@ -7,7 +7,7 @@ addons:
             - build-essential
 before_install:
     - jdk_switcher use oraclejdk8
-    - find /usr/lib
+    - find $HOME/.local/lib/
     - ./scripts/install_gdal.sh
 jdk:
     - oraclejdk8
