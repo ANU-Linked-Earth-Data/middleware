@@ -10,5 +10,6 @@ before_install:
     - jdk_switcher use oraclejdk8
     - ./scripts/install_gdal.sh
     - find $HOME/.local/lib/ || true
+    - export LD_LIBRARY_PATH=$HOME/.local/lib
 jdk:
     - oraclejdk8
