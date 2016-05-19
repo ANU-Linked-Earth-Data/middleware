@@ -8,5 +8,7 @@ addons:
 before_install:
     - jdk_switcher use oraclejdk8
     - ./scripts/install_gdal.sh
+    - find libs/lib/
+    - export "LD_LIBRARY_PATH=$(pwd)/libs/lib/"
 jdk:
     - oraclejdk8
