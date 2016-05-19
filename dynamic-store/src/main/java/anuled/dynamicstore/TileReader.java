@@ -95,18 +95,20 @@ public class TileReader {
 					public Pixel next() {
 						Pixel pixel = new Pixel(row, col);
 
-						if (row < pixelWidth)
-							row++;
-						else
-							row = 0;
+						// Iterates one row at a time (first row first col,
+						// first row second col, etc.)
 						col++;
+						if (col >= pixelWidth) {
+							row++;
+							col = 0;
+						}
 
 						return pixel;
 					}
 
 					@Override
 					public boolean hasNext() {
-						return col < pixelHeight;
+						return row < pixelHeight && col < pixelWidth;
 					}
 				};
 			}
