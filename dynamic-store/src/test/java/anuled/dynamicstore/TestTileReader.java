@@ -41,6 +41,6 @@ public class TestTileReader extends TestCase {
 		for (@SuppressWarnings("unused") Pixel pixel : iter) {
 			numPixels += 1;
 		}
-		assert(numPixels == TRUE_HEIGHT * TRUE_WIDTH);
+		assertEquals(numPixels, TRUE_HEIGHT * TRUE_WIDTH);
 	}
 }

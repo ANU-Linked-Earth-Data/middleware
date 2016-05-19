@@ -1,0 +1,9 @@
+#!/bin/sh
+
+TARGET="target/dynamic-store-1.0-SNAPSHOT.jar"
+if [ ! -f "$TARGET" ]; then
+    echo "Target $TARGET missing; rebuilding"
+    sleep 1
+    mvn package || die "Maven failed"
+fi
+exec java -jar target/dynamic-store-1.0-SNAPSHOT.jar $@

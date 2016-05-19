@@ -5,3 +5,7 @@ data/
 *.log
 log
 *.pid
+
+# For Travis build
+libs/
+gdal-*
