@@ -17,7 +17,7 @@ if [ ! -d "$DEST_DIR" ]; then
 fi
 
 NCPUS="$(grep '^cpu MHz' < /proc/cpuinfo | wc -l)"
-PREFIX="$(pwd)/libs"
+PREFIX="$HOME/.local"
 echo "Building GDAL with $NCPUS CPUs (will install in $PREFIX)"
 mkdir -p "$PREFIX"
 cd "$DEST_DIR"
