@@ -1,5 +1,4 @@
 package anuled.dynamicstore;
-import java.util.Optional;
 
 import spark.*;
 

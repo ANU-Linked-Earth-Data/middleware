@@ -17,7 +17,7 @@
 			<groupId>org.apache.jena</groupId>
 			<artifactId>apache-jena-libs</artifactId>
 			<type>pom</type>
-			<version>3.0.1</version>
+			<version>3.1.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.gdal</groupId>
@@ -25,9 +25,9 @@
 			<version>1.11.2</version>
 		</dependency>
 		<dependency>
-		    <groupId>com.sparkjava</groupId>
-		    <artifactId>spark-core</artifactId>
-		    <version>2.5</version>
+			<groupId>com.sparkjava</groupId>
+			<artifactId>spark-core</artifactId>
+			<version>2.5</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
@@ -38,6 +38,18 @@
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>19.0</version>
+		</dependency>
+		<!-- Check out jena-fuseki-server's pom.xml to how to build a runnable 
+			Fuseki jar -->
+		<dependency>
+			<groupId>org.apache.jena</groupId>
+			<artifactId>jena-fuseki-core</artifactId>
+			<version>2.4.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.jena</groupId>
+			<artifactId>jena-cmds</artifactId>
+			<version>3.1.0</version>
 		</dependency>
 	</dependencies>
 	<repositories>
@@ -52,16 +64,39 @@
 		</repository>
 	</repositories>
 	<build>
-    <plugins>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.5.1</version>
-            <configuration>
-                <source>1.8</source>
-                <target>1.8</target>
-            </configuration>
-        </plugin>
-    </plugins>
-</build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.5.1</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>2.4.3</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<transformers>
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>org.apache.jena.fuseki.cmd.FusekiCmd</mainClass>
+								</transformer>
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+							</transformers>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 </project>
