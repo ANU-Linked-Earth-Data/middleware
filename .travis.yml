@@ -5,9 +5,10 @@ addons:
             - libgdal-dev
             - libgdal-java
             - build-essential
+            - swig
 before_install:
     - jdk_switcher use oraclejdk8
-    - find $HOME/.local/lib/
     - ./scripts/install_gdal.sh
+    - find $HOME/.local/lib/ || true
 jdk:
     - oraclejdk8

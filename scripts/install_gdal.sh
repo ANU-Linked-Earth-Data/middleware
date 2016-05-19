@@ -73,3 +73,7 @@ cd "$DEST_DIR"
             --with-hide-internal-symbols
 make -j$NCPUS
 make install
+echo "Building Java wrapper"
+cd swig/java
+make -j$NCPUS
+make install
