@@ -5,7 +5,7 @@ set -e
 VERSION="1.11.2"
 GDAL_URL="http://download.osgeo.org/gdal/${VERSION}/gdal-${VERSION}.tar.gz"
 DEST_TGZ="$(basename "$GDAL_URL")"
-DEST_DIR="$(basename -s .tar.gz "$DEST_TGZ")"
+DEST_DIR="$(basename "$DEST_TGZ" .tar.gz)"
 
 if [ ! -d "$DEST_DIR" ]; then
     if [ ! -f "$DEST_TGZ" ]; then
