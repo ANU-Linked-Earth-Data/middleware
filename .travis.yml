@@ -4,5 +4,9 @@ addons:
         packages:
             - libgdal-dev
             - libgdal-java
+            - build-essential
+before_install:
+    - jdk_switcher use oraclejdk8
+    - ./scripts/install_gdal.sh
 jdk:
     - oraclejdk8
