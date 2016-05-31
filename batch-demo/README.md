@@ -1,6 +1,14 @@
 # Batch-loading middleware demo
 
-This directory contains an offline implementation of our new RDF data cube architecture for delivering satellite coverage data. Unlike our new dynamic implementation, which generates RDF triples corresponding to satellite observations on the fly, the code in this directory produces all possible triples in one go, and sticks them in a triple store (Fuseki) for later querying. This was very easy to implement, and is suitable for prototyping, but will not scale to larger amounts of data.
+This directory contains an offline implementation of our new RDF data cube
+architecture for delivering satellite coverage data. Unlike our new dynamic
+implementation, which generates RDF triples corresponding to satellite
+observations on the fly, the code in this directory produces all possible
+triples in one go, and sticks them in a triple store (Fuseki) for later
+querying. This was very easy to implement, and is suitable for prototyping, but
+will not scale to larger amounts of data.
+
+## Dependencies
 
 The following steps should get this running on your own machine:
 
@@ -24,19 +32,32 @@ $ . env/bin/activate
 ... more output ...
 ```
 
-If the `pip install` line fails on GDAL, then you may need to install it
-manually using a command like the following:
+## Getting some data
+
+Data loading in the middleware relies on the [resampler
+script](https://github.com/ANU-Linked-Earth-Data/resampler), which converts
+AGDC data in GeoTIFF format to HDF5 data structured as rHEALPix cells. Before
+following the steps below, try running that on an AGDC file to get a nicely
+formatted HDF5 file (see instructions in the resampler repository).
+
+## Running it
+
+To actually run the data importer, start by running Fueski. If you didn't run
+Fuseki in the dependency instructions above, you can run it in the foreground
+of the current TTY with:
 
 ```shell
-$ . env/bin/activate # Activate the virtualenv if you haven't already
-(env)$ pip install --global-option=build_ext --global-option="-I/usr/include/gdal" GDAL==1.11.2
+$ ./fuseki/run-fuseki
 ```
 
-After running that, you should be able to comment out the line beginning with
-`GDAL` in `requirements.txt` and try running `pip install -r requirements.txt`
-again. Remember that you can substitute 1.11.2 for whatever version of GDAL you
-have installed on your system.
+Now you can import some data. If `result.h5` is the HDF5 file you generated
+with the resampler, then you can just do:
 
-GDAL is *always* a pain to install (regardless of what language you use it
-from), but unfortunately it has one of the few extant implementations of
-GeoTIFF.
+```shell
+$ . env/bin/activate
+(env)$ ./import_agdc_data.py result.h5
+```
+
+That will take a while to complete. Once it's done, you should be able to go to
+the Fuseki control panel (usually [localhost:3030](http://localhost:3030/)) and
+play around with your data.
