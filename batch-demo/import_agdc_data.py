@@ -26,9 +26,6 @@ OGC = Namespace('http://www.opengis.net/ont/geosparql#')
 # is union of all named graphs)
 DEFAULT = LED.lsGraph
 # Boilerplate turtles are the best turtles
-# TODO: This boilerplate is out of sync with Dmitry's example. I'll have to
-# rewrite it now that we've moved to HDF5. Also need to rewrite the data-to-RDF
-# code to be consistent with the new ontology.
 BOILERPLATE_TURTLE = """
 @prefix : <{LED}> .
 @prefix rdf: <{RDF}> .
@@ -50,14 +47,19 @@ BOILERPLATE_TURTLE = """
                , :satelliteComponent
                , :timeComponent
                , :dataComponent
-               , :etmBandComponent .
+               , :etmBandComponent
+               , :dggsComponent
+               , :dggsCellComponent
+               , :dggsLevelSquareComponent
+               , :dggsLevelPixelComponent .
 
 :landsatDS a qb:DataSet ;
     rdfs:label "Landsat sensor data"@en ;
     rdfs:comment "Some data from LandSat, retrieved from AGDC"@en ;
     qb:structure :landsatDSD ;
     :instrument gcmd-instrument:SCANNER ;
-    :satellite gcmd-platform:LANDSAT-7 .
+    :satellite gcmd-platform:LANDSAT-7 ;
+    :dggs "rHEALPix WGS84 Ellipsoid" .
 
 :instrumentComponent a qb:ComponentSpecification ;
     qb:attribute :instrument .
@@ -72,10 +74,22 @@ BOILERPLATE_TURTLE = """
     qb:dimension :time .
 
 :dataComponent a qb:ComponentSpecification ;
-    qb:dimension :imageData .
+    qb:measure :imageData .
 
 :etmBandComponnet a qb:ComponentSpecification ;
     qb:dimension :etmBand .
+
+:dggsComponent a qb:ComponentSpecification ;
+    qb:attribute :dggs .
+
+:dggsCellComponent a qb:ComponentSpecification ;
+    qb:dimension :dggsCell .
+
+:dggsLevelSquareComponent a qb:ComponentSpecification ;
+    qb:dimension :dggsLevelSquare .
+
+:dggsLevelPixelComponent a qb:ComponentSpecification ;
+    qb:dimension :dggsLevelPixel .
 
 :etmBand a qb:AttributeProperty ;
     rdfs:label "LandSat ETM observation band"@en;
@@ -89,6 +103,18 @@ BOILERPLATE_TURTLE = """
 
 :time a qb:AttributeProperty ;
     rdfs:range xsd:dateTime .
+
+:dggs a qb:AttributeProperty ;
+    rdfs:range xsd:string .
+
+:dggsCell a owl:DatatypeProperty, qb:DimensionProperty ;
+    rdfs:range xsd:string .
+
+:dggsLevelSquare a qb:DimensionProperty ;
+    rdfs:range xsd:integer .
+
+:dggsLevelPixel a qb:DimensionProperty ;
+    rdfs:range xsd:integer .
 """.format(QB=QB, SDMXD=SDMXD, SDMXM=SDMXM, LED=LED, GEO=GEO, SDMXC=SDMXC,
            RDF=RDF, RDFS=RDFS, XSD=XSD, OWL=OWL, OGC=OGC)
 
@@ -123,8 +149,34 @@ def loc_triples(subj, prop, lat, lon):
     yield (loc_bnode, GEO.lon, Literal(lon, datatype=XSD.decimal))
 
 
+def cell_level_square(cell_id):
+    """Get level in DGGS hierarchy associated with slash-separated cell ID.
+    Maps `/R/0/0/0/0/5` to 5, for instance"""
+    return len([x for x in cell_id.split('/') if x])
+
+
 def graph_for_data(cell_id, tile, meta):
     is_pixel = not tile.ndim
+    if is_pixel:
+        tile_size = 1
+    else:
+        tile_w, tile_h = tile.shape
+        assert tile_w == tile_h
+        tile_size = tile_w
+
+    # Find level in DGGS hierarchy of current square and current data
+    level_square = cell_level_square(cell_id)
+    if is_pixel:
+        level_pixel = level_square
+    else:
+        extra = np.log(tile_size) / np.log(3)
+        int_extra = int(round(extra))
+        assert abs(extra - int_extra) < 1e-5, \
+            'Tile size needs to be power of 3'
+        level_pixel = level_square + int_extra
+
+    ident_str = 'cell/' + cell_id + '/pixelLevel/' + str(level_pixel)
+    ident = URIRef(LED['observation/' + ident_str])
 
     # Bounding box for the tile, which we'll convert into WKT
     bbox_corners = meta['bounds']
@@ -132,37 +184,37 @@ def graph_for_data(cell_id, tile, meta):
         *['{} {}'.format(lon, lat) for lon, lat in bbox_corners]
     ), datatype=OGC.wktLiteral)
 
-    ident_str = 'cell/' + cell_id
-    ident = URIRef(LED['observation/' + ident_str])
-
-    # Woooo this makes no sense
+    # Woooo this resolution calculation makes no sense
     maxes = bbox_corners.max(axis=0)
     mins = bbox_corners.min(axis=0)
-    if is_pixel:
-        tile_w = tile_h = 1
-    else:
-        tile_w, tile_h = tile.shape
-    res = np.mean(np.abs([
-        tile_h / (maxes[1] - mins[1]),
-        tile_w / (maxes[0] - mins[0])
-    ]))
+    res = np.mean(tile_size / np.abs(maxes - mins))
 
     if is_pixel:
-        yield (ident, LED.imageData, Literal(float(tile)))
+        yield from [
+            (ident, LED.imageData, Literal(float(tile))),
+            (ident, RDF.type, LED.Pixel)
+        ]
     else:
         png_tile = URIRef(array_to_png(tile))
-        yield (ident, LED.imageData, png_tile)
+        yield from [
+            (ident, LED.imageData, png_tile),
+            (ident, RDF.type, LED.GridSquare)
+        ]
 
     # Actual data
     yield from [
         (ident, RDF.type, QB.Observation),
         (ident, QB.dataSet, LED.landsatDS),
         (ident, LED.bounds, loc_wkt),
-        # TODO: Need to get real band number in here
+        # TODO: Need to get real band number in here. Blocked on upgrade of
+        # resampler to do that.
         (ident, LED.etmBand, Literal(1, datatype=XSD.integer)),
         (ident, LED.time, Literal(meta['datetime'], datatype=XSD.datetime)),
         (ident, LED.resolution,
-            Literal(res, datatype=XSD.decimal))
+            Literal(res, datatype=XSD.decimal)),
+        (ident, LED.dggsCell, Literal(cell_id)),
+        (ident, LED.dggsLevelSquare, Literal(level_square)),
+        (ident, LED.dggsLevelPixel, Literal(level_pixel))
     ]
 
     # Yield the centre point
