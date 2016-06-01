@@ -6,8 +6,8 @@ VERSION=2.3.1
 DEST_TGZ="apache-jena-fuseki-${VERSION}.tar.gz"
 DEST_TGZ_MD5SUM="fd3ffd63c381b4080ab7810e8b721421  $DEST_TGZ"
 DEST_DIR="$(pwd)/apache-jena-fuseki-${VERSION}"
-APACHE_REPO_PATH="/jena/binaries/apache-jena-fuseki-${VERSION}.tar.gz"
-MIRRORS="apache.mirror.serversaustralia.com.au apache.uberglobalmirror.com apache.mirror.digitalpacific.com.au"
+APACHE_REPO_PATH="jena/binaries/apache-jena-fuseki-${VERSION}.tar.gz"
+MIRRORS="apache.mirror.serversaustralia.com.au apache.uberglobalmirror.com apache.mirror.digitalpacific.com.au archive.apache.org/dist"
 
 JTS_VERSION=1.14
 JTS_DEST_ZIP="$(pwd)/jts-${JTS_VERSION}.zip"
