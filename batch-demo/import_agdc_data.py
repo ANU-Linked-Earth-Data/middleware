@@ -132,7 +132,18 @@ def slow(generator, suffix, interval=500, total=None):
 def array_to_png(array):
     """Turn a 2D array into a data: URI filled with PNG goodies :)"""
     assert array.ndim == 2
+
+    # Convert to PIL image with transparent pixels for masked values
     im = toimage(array)
+    mask = array.mask
+    if mask.shape:
+        # Only bother putting in an alpha channel if there are masked values
+        alpha = toimage(~mask)
+        im.putalpha(alpha)
+    else:
+        assert not mask, 'Need to have some unmasked values'
+
+    # Now save to base64-encoded data: URL
     fp = BytesIO()
     im.save(fp, format='png')
     data = b64encode(fp.getvalue()).decode('utf-8')
@@ -227,13 +238,14 @@ def graph_for_cell(cell):
     # [()] converts to Numpy array
     pixel = cell['pixel'][()]
     data = cell['data'][()]
+    masked_data = np.ma.masked_values(data, cell.attrs['missing_value'])
     meta = dict(cell.attrs)
     cell_id = cell.name
 
     # Both pixel and dense data are treated as "data" (just one has a
     # resolution of 1x1)
     yield from graph_for_data(cell_id, pixel, meta)
-    yield from graph_for_data(cell_id, data, meta)
+    yield from graph_for_data(cell_id, masked_data, meta)
 
 
 def data_cell_ids(hdf5_file):
