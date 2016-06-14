@@ -167,7 +167,7 @@ def cell_level_square(cell_id):
 
 
 def graph_for_data(cell_id, tile, meta):
-    is_pixel = not tile.ndim
+    is_pixel = tile.ndim <= 1
     if is_pixel:
         tile_size = 1
     else:
@@ -233,11 +233,19 @@ def graph_for_data(cell_id, tile, meta):
     yield from loc_triples(ident, LED.location, centre_lat, centre_lon)
 
 
-def graph_for_cell(cell):
+def graph_for_cell(cell, band):
     """Process a single DGGS cell, represented as a h5py group."""
     # [()] converts to Numpy array
     pixel = cell['pixel'][()]
     data = cell['data'][()]
+    assert pixel.shape == data.shape[::-1][2:], \
+        'Pixel and tile need same channel count'
+    if pixel.size > 1:
+        assert band < pixel.size, 'Band must be in range'
+        pixel = pixel[band]
+        data = data[band, :, :]
+    else:
+        assert band == 0, 'Only one band available'
     masked_data = np.ma.masked_values(data, cell.attrs['missing_value'])
     meta = dict(cell.attrs)
     cell_id = cell.name
@@ -266,7 +274,7 @@ def data_cell_ids(hdf5_file):
         to_explore.extend(children)
 
 
-def build_graph(hdf5_file):
+def build_graph(hdf5_file, band):
     """Generator producing all observation triples for each band."""
     boilerplate_graph = Graph().parse(
         StringIO(BOILERPLATE_TURTLE), format='turtle'
@@ -278,7 +286,7 @@ def build_graph(hdf5_file):
     for cell_id in data_cell_ids(hdf5_file):
         group = hdf5_file[cell_id]
         print('Processing cell {}'.format(cell_id))
-        yield from graph_for_cell(group)
+        yield from graph_for_cell(group, band)
 
 
 def iterchunk(iterator, n):
@@ -305,12 +313,16 @@ parser.add_argument(
     '--update-url', type=str, default='http://localhost:3030/landsat/update',
     dest='update_url', help='Update URL for SPARQL endpoint'
 )
+parser.add_argument(
+    '--band', type=int, default=0, dest='band',
+    help='Which band to use (if there are several)'
+)
 
 if __name__ == '__main__':
     args = parser.parse_args()
 
     with h5py.File(args.hdf5_file, 'r') as hdf5_fp:
-        graph_triples = build_graph(hdf5_fp)
+        graph_triples = build_graph(hdf5_fp, args.band)
 
         # Batch the triples so that Python doesn't asplode
         for triples in slow(iterchunk(graph_triples, 100), 'chunks'):
