@@ -8,6 +8,7 @@ from base64 import b64encode
 from io import StringIO, BytesIO
 from itertools import islice, chain
 
+from dateutil.parser import parse as date_parse
 import h5py
 import numpy as np
 from scipy.misc import toimage
@@ -166,6 +167,18 @@ def cell_level_square(cell_id):
     return len([x for x in cell_id.split('/') if x])
 
 
+def ident_for_tile(cell_id, level_square, level_pixel, meta):
+    dt = meta['datetime']
+    url_end = 'observation'
+    utc = dt.utctimetuple()
+    url_end += '/{utc.tm_year}/{utc.tm_mon}/{utc.tm_mday}/{utc.tm_hour}' \
+        '/{utc.tm_min}/{utc.tm_sec}'.format(utc=utc)
+    url_end += '/cell/' + cell_id.strip('/')
+    url_end += '/levelSquare-%i' % level_square
+    url_end += '/levelPixel-%i' % level_pixel
+    return LED[url_end]
+
+
 def graph_for_data(cell_id, tile, meta):
     is_pixel = tile.ndim <= 1
     if is_pixel:
@@ -186,8 +199,7 @@ def graph_for_data(cell_id, tile, meta):
             'Tile size needs to be power of 3'
         level_pixel = level_square + int_extra
 
-    ident_str = 'cell/' + cell_id + '/pixelLevel/' + str(level_pixel)
-    ident = URIRef(LED['observation/' + ident_str])
+    ident = ident_for_tile(cell_id, level_square, level_pixel, meta)
 
     # Bounding box for the tile, which we'll convert into WKT
     bbox_corners = meta['bounds']
@@ -202,7 +214,7 @@ def graph_for_data(cell_id, tile, meta):
 
     if is_pixel:
         yield from [
-            (ident, LED.imageData, Literal(float(tile))),
+            (ident, LED.value, Literal(float(tile))),
             (ident, RDF.type, LED.Pixel)
         ]
     else:
@@ -233,6 +245,17 @@ def graph_for_data(cell_id, tile, meta):
     yield from loc_triples(ident, LED.location, centre_lat, centre_lon)
 
 
+def convert_meta(src_meta):
+    """Convert metadata from HDF5 file to native types"""
+    dest_meta = {}
+    for k, v in src_meta.items():
+        if k == 'datetime':
+            dest_meta[k] = date_parse(v)
+        else:
+            dest_meta[k] = v
+    return dest_meta
+
+
 def graph_for_cell(cell, band):
     """Process a single DGGS cell, represented as a h5py group."""
     # [()] converts to Numpy array
@@ -246,8 +269,8 @@ def graph_for_cell(cell, band):
         data = data[band, :, :]
     else:
         assert band == 0, 'Only one band available'
-    masked_data = np.ma.masked_values(data, cell.attrs['missing_value'])
-    meta = dict(cell.attrs)
+    meta = convert_meta(dict(cell.attrs))
+    masked_data = np.ma.masked_values(data, meta['missing_value'])
     cell_id = cell.name
 
     # Both pixel and dense data are treated as "data" (just one has a
