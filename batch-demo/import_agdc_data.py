@@ -167,7 +167,7 @@ def cell_level_square(cell_id):
     return len([x for x in cell_id.split('/') if x])
 
 
-def ident_for_tile(cell_id, level_square, level_pixel, meta):
+def ident_for_tile(cell_id, level_square, level_pixel, band, meta):
     dt = meta['datetime']
     url_end = 'observation'
     utc = dt.utctimetuple()
@@ -176,10 +176,11 @@ def ident_for_tile(cell_id, level_square, level_pixel, meta):
     url_end += '/cell/' + cell_id.strip('/')
     url_end += '/levelSquare-%i' % level_square
     url_end += '/levelPixel-%i' % level_pixel
+    url_end += '/band-%i' % band
     return LED[url_end]
 
 
-def graph_for_data(cell_id, tile, meta):
+def graph_for_data(cell_id, tile, band, meta):
     is_pixel = tile.ndim <= 1
     if is_pixel:
         tile_size = 1
@@ -199,7 +200,7 @@ def graph_for_data(cell_id, tile, meta):
             'Tile size needs to be power of 3'
         level_pixel = level_square + int_extra
 
-    ident = ident_for_tile(cell_id, level_square, level_pixel, meta)
+    ident = ident_for_tile(cell_id, level_square, level_pixel, band, meta)
 
     # Bounding box for the tile, which we'll convert into WKT
     bbox_corners = meta['bounds']
@@ -229,9 +230,7 @@ def graph_for_data(cell_id, tile, meta):
         (ident, RDF.type, QB.Observation),
         (ident, QB.dataSet, LED.landsatDS),
         (ident, LED.bounds, loc_wkt),
-        # TODO: Need to get real band number in here. Blocked on upgrade of
-        # resampler to do that.
-        (ident, LED.etmBand, Literal(1, datatype=XSD.integer)),
+        (ident, LED.etmBand, Literal(band, datatype=XSD.integer)),
         (ident, LED.time, Literal(meta['datetime'], datatype=XSD.datetime)),
         (ident, LED.resolution,
             Literal(res, datatype=XSD.decimal)),
@@ -256,27 +255,41 @@ def convert_meta(src_meta):
     return dest_meta
 
 
-def graph_for_cell(cell, band):
+def graph_for_cell(cell):
     """Process a single DGGS cell, represented as a h5py group."""
     # [()] converts to Numpy array
     pixel = cell['pixel'][()]
     data = cell['data'][()]
-    assert pixel.shape == data.shape[::-1][2:], \
-        'Pixel and tile need same channel count'
-    if pixel.size > 1:
-        assert band < pixel.size, 'Band must be in range'
-        pixel = pixel[band]
-        data = data[band, :, :]
+    assert pixel.ndim <= 1
+    if pixel.ndim == 0:
+        num_bands = 1
+        assert data.ndim == 2
     else:
-        assert band == 0, 'Only one band available'
-    meta = convert_meta(dict(cell.attrs))
-    masked_data = np.ma.masked_values(data, meta['missing_value'])
-    cell_id = cell.name
+        num_bands = pixel.shape[0]
+        assert data.ndim == 3 and data.shape[0] == num_bands, \
+            'Pixel and tile need same channel count'
 
-    # Both pixel and dense data are treated as "data" (just one has a
-    # resolution of 1x1)
-    yield from graph_for_data(cell_id, pixel, meta)
-    yield from graph_for_data(cell_id, masked_data, meta)
+    meta = convert_meta(dict(cell.attrs))
+    cell_id = cell.name
+    masked_data = np.ma.masked_values(data, meta['missing_value'])
+
+    for band in range(num_bands):
+        if num_bands > 1:
+            pixel_band = pixel[band]
+            masked_data_band = masked_data[band]
+        else:
+            pixel_band = pixel
+            masked_data_band = masked_data
+
+        # Sanity checks (masked_data_band must be 2D image, pixel must be
+        # single number)
+        assert np.isscalar(pixel_band) or pixel_band.size == 1
+        assert masked_data_band.ndim == 2
+
+        # Both pixel and dense data are treated as "data" (just one has a
+        # resolution of 1x1)
+        yield from graph_for_data(cell_id, pixel_band, band, meta)
+        yield from graph_for_data(cell_id, masked_data_band, band, meta)
 
 
 def data_cell_ids(hdf5_file):
@@ -297,7 +310,7 @@ def data_cell_ids(hdf5_file):
         to_explore.extend(children)
 
 
-def build_graph(hdf5_file, band):
+def build_graph(hdf5_file):
     """Generator producing all observation triples for each band."""
     boilerplate_graph = Graph().parse(
         StringIO(BOILERPLATE_TURTLE), format='turtle'
@@ -309,7 +322,7 @@ def build_graph(hdf5_file, band):
     for cell_id in data_cell_ids(hdf5_file):
         group = hdf5_file[cell_id]
         print('Processing cell {}'.format(cell_id))
-        yield from graph_for_cell(group, band)
+        yield from graph_for_cell(group)
 
 
 def iterchunk(iterator, n):
@@ -336,16 +349,12 @@ parser.add_argument(
     '--update-url', type=str, default='http://localhost:3030/landsat/update',
     dest='update_url', help='Update URL for SPARQL endpoint'
 )
-parser.add_argument(
-    '--band', type=int, default=0, dest='band',
-    help='Which band to use (if there are several)'
-)
 
 if __name__ == '__main__':
     args = parser.parse_args()
 
     with h5py.File(args.hdf5_file, 'r') as hdf5_fp:
-        graph_triples = build_graph(hdf5_fp, args.band)
+        graph_triples = build_graph(hdf5_fp)
 
         # Batch the triples so that Python doesn't asplode
         for triples in slow(iterchunk(graph_triples, 100), 'chunks'):
