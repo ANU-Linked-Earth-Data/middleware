@@ -2,15 +2,8 @@ language: java
 addons:
     apt:
         packages:
-            - libgdal-dev
-            - libgdal-java
-            - build-essential
-            - swig
+            - libjhdf5-java
 before_install:
     - jdk_switcher use oraclejdk8
-    - ./scripts/install_gdal.sh
-    - find $HOME/.local/lib/ || true
-    - export LD_LIBRARY_PATH=$HOME/.local/lib
-    - export MAVEN_OPTS="-Djava.library.path=$HOME/.local/lib"
 jdk:
     - oraclejdk8
