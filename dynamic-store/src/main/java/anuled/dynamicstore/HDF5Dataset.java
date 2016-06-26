@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
 
 import ch.systemsx.cisd.hdf5.HDF5Factory;
@@ -32,7 +31,7 @@ public class HDF5Dataset {
 		while (!to_explore.isEmpty()) {
 			String group = to_explore.remove();
 			
-			// Append this node to the index
+			// Append this node to the index iff it looks like real data
 			HDF5Cell cell = new HDF5Cell(group);
 			rv.add(cell);
 			
