@@ -3,8 +3,10 @@ addons:
     apt:
         packages:
             - libjhdf5-java
+            - wget
 before_install:
     - jdk_switcher use oraclejdk8
+    - dynamic-store/install-jhdf5
     - export LD_LIBRARY_PATH=/usr/lib/jni/
     - export MAVEN_OPTS="-Djava.library.path=/usr/lib/jni/"
 jdk:

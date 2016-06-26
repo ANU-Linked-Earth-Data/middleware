@@ -37,9 +37,9 @@
 			<version>3.1.0</version>
 		</dependency>
 		<dependency>
-			<groupId>org.scala-saddle</groupId>
+			<groupId>ch.systemsx.cisd</groupId>
 			<artifactId>jhdf5</artifactId>
-			<version>2.9</version>
+			<version>14.12.6-r36356</version>
 		</dependency>
 	</dependencies>
 	<repositories>

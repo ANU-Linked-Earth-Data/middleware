@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# Installs JHDF5, a high-level HDF5 wrapper for Java. It's not in the central
+# Maven repositories, so we have to install it ourselves :(
+
+set -e
+
+DL_URL="https://wiki-bsse.ethz.ch/download/attachments/26609237/sis-jhdf5-14.12.6-r36356.zip?version=1&modificationDate=1462044819824&api=v2"
+VERSION="14.12.6-r36356"
+DL_NAME="sis-jhdf5-$VERSION.zip"
+WORK_DIR="jhdf5"
+
+mkdir -p "$WORK_DIR"
+extract_path="$WORK_DIR/$(basename "$DL_NAME" .zip)"
+if [ ! -d "$extract_path" ]; then
+    dl_path="$WORK_DIR/$DL_NAME"
+    if [ ! -f "$dl_path" ]; then
+        echo "Downloading to $dl_path"
+        wget -O "$dl_path" "$DL_URL"
+    fi
+    echo "Extracting to $extract_path"
+    unzip -d "$extract_path" "$dl_path"
+fi
+
+jar_path="$extract_path/sis-jhdf5/lib/batteries_included/sis-jhdf5-batteries_included.jar"
+mvn install:install-file -Dfile="$jar_path" -DgroupId="ch.systemsx.cisd" \
+    -DartifactId="jhdf5" -Dversion="$VERSION" -Dpackaging="jar"

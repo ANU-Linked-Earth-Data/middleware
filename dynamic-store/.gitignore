@@ -13,3 +13,6 @@ buildNumber.properties
 .classpath
 .project
 .settings/
+
+# Dependencies
+jhdf5/
