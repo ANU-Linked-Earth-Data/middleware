@@ -1,23 +1,15 @@
 package anuled.dynamicstore;
 
 import org.apache.jena.graph.Triple;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class TestLandsatGraph {
 	private LandsatGraph graph;
-	private TestGeotiff testGT;
 
 	@Before
 	public void setUp() throws Exception {
-		testGT = new TestGeotiff();
-		graph = new LandsatGraph(testGT.getPath());
-	}
-
-	@After
-	public void tearDown() {
-		testGT.dispose();
+		graph = new LandsatGraph(TestData.TEST_H5_NAME);
 	}
 
 	@Test

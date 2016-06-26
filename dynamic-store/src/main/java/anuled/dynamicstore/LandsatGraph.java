@@ -1,5 +1,6 @@
 package anuled.dynamicstore;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.Function;
 
@@ -16,11 +17,8 @@ import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 import org.apache.jena.vocabulary.XSD;
 
-import com.google.common.collect.Iterables;
-
 import anuled.vocabulary.GCMDInstrument;
 import anuled.vocabulary.GCMDPlatform;
-import anuled.vocabulary.Geo;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
 
@@ -38,13 +36,13 @@ public final class LandsatGraph extends GraphBase {
 	private Model dataCubeMeta = ModelFactory.createDefaultModel();
 	private Resource qbStructure, qbDSDefinition;
 	private final String prefix = "http://www.example.org/ANU-LED-example#";
-	private TileReader reader;
+	private HDF5Dataset reader;
 	private Resource timeAP;
 
-	public LandsatGraph(String tileFilename) {
+	public LandsatGraph(String h5Filename) {
 		super();
 		initMeta();
-		reader = new TileReader(tileFilename);
+		reader = new HDF5Dataset(h5Filename);
 	}
 
 	/** Initialise metadata associated with this dataset. */
@@ -104,16 +102,16 @@ public final class LandsatGraph extends GraphBase {
 	}
 
 	/** Convert a pixel into a WKT polygon */
-	private String pixelToPolyWKT(TileReader.Pixel p) {
+	/* private String pixelToPolyWKT(TileReader.Pixel p) {
 		double top = p.latlong[0] + reader.getPixelHeight() / 2;
 		double bot = p.latlong[0] - reader.getPixelHeight() / 2;
 		double left = p.latlong[1] - reader.getPixelWidth() / 2;
 		double right = p.latlong[1] + reader.getPixelWidth() / 2;
 		return String.format("POLYGON((%f %f, %f %f, %f %f, %f %f, %f %f))",
 				top, left, top, right, bot, right, bot, left, top, left);
-	}
+	} */
 
-	private Iterable<Triple> pixelToTriples(TileReader.Pixel p) {
+	/* private Iterable<Triple> pixelToTriples(TileReader.Pixel p) {
 		Model pxModel = ModelFactory.createDefaultModel();
 
 		pxModel.createResource(prefix + "/pixel-" + p.row + "-" + p.col)
@@ -144,15 +142,15 @@ public final class LandsatGraph extends GraphBase {
 				return pxModel.listStatements().mapWith(FrontsTriple::asTriple);
 			};
 		};
-	}
+	} */
 
 	/**
 	 * Iterate over all pixels in the attached Landsat tile, returning each as
 	 * an RDF graph.
 	 */
-	private Iterable<Triple> pixelIterable() {
-		return Iterables.concat(
-				Iterables.transform(reader.pixels(), this::pixelToTriples));
+	private Iterator<Triple> pixelIterator() {
+		return Collections.emptyIterator();
+		// return Iterables.concat(Iterables.transform(reader.pixels(), this::pixelToTriples));
 	}
 
 	/**
@@ -165,7 +163,7 @@ public final class LandsatGraph extends GraphBase {
 	protected ExtendedIterator<Triple> graphBaseFind(Triple trip) {
 		StmtIterator metaStmts = dataCubeMeta.listStatements();
 		ExtendedIterator<Triple> rv = metaStmts.mapWith(FrontsTriple::asTriple);
-		rv = rv.andThen(pixelIterable().iterator());
+		rv = rv.andThen(pixelIterator());
 		return rv;
 	}
 
