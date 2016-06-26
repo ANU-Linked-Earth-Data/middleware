@@ -20,4 +20,8 @@ public class HDF5Dataset {
 			throw new RuntimeException("Could not close file (see inner)", e);
 		}
 	}
+	
+	public Iterable<HDF5Cell> cells() {
+		return null;
+	}
 }

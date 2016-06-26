@@ -26,6 +26,8 @@ public class TestHDF5Dataset {
 	
 	@Test
 	public void testCellIterator() {
-		
+		for (HDF5Cell cell : ds.cells()) {
+			
+		}
 	}
 }
