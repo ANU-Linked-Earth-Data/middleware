@@ -101,8 +101,8 @@ public class HDF5Dataset {
 			}
 			long[] dims = fp.getDataSetInformation(path + "/data")
 					.getDimensions();
-			assert dims.length == 3 && dims[0] == dims[1]
-					&& dims[3] == getNumBands();
+			assert dims.length == 3 && dims[1] == dims[2]
+					&& dims[0] == getNumBands();
 			tileSize = (int) dims[0];
 
 			IHDF5DoubleReader doubleReader = fp.float64();
