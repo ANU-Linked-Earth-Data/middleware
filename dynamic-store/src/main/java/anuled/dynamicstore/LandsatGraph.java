@@ -17,8 +17,10 @@ import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 import org.apache.jena.vocabulary.XSD;
 
+import anuled.dynamicstore.HDF5Dataset.Observation;
 import anuled.vocabulary.GCMDInstrument;
 import anuled.vocabulary.GCMDPlatform;
+import anuled.vocabulary.Geo;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
 
@@ -112,28 +114,38 @@ public final class LandsatGraph extends GraphBase {
 	} */
 
 	/* private Iterable<Triple> pixelToTriples(TileReader.Pixel p) {
-		Model pxModel = ModelFactory.createDefaultModel();
 
-		pxModel.createResource(prefix + "/pixel-" + p.row + "-" + p.col)
+	} */
+	
+	/**
+	 * Convert a HDF5Dataset.Observation to a list of triples; will use pixel data if usePixel
+	 * is specified, otherwise tile data.
+	 */
+	private Iterable<Triple> observationToTriples(Observation obs) {
+		Model pxModel = ModelFactory.createDefaultModel();
+		HDF5Dataset.Cell cell = obs.getCell();
+
+		String url = URLScheme.cellURL(obs);
+		pxModel.createResource(url)
 				.addProperty(RDF.type, LED.Pixel)
 				.addProperty(RDF.type, QB.Observation)
 				// XXX: Using p.pixel[0] is badly broken becuase (a) it might
 				// be out of bounds and (b) it will ignore the rest of the bands
-				.addProperty(LED.imageData,
-						pxModel.createTypedLiteral(p.pixel[0]))
+//				.addProperty(LED.imageData,
+//						pxModel.createTypedLiteral(p.pixel[0]))
 				// TODO: This should be an xsd:dateTime (so pass
 				// .createTypedLiteral a Java Calendar object)
 				.addProperty(pxModel.createProperty(timeAP.getURI()),
 						pxModel.createLiteral(""))
 				.addProperty(LED.resolution, pxModel.createTypedLiteral(0.0))
-				.addProperty(LED.bounds,
-						pxModel.createTypedLiteral(pixelToPolyWKT(p),
-								"http://www.opengis.net/ont/geosparql#wktLiteral"))
+//				.addProperty(LED.bounds,
+//						pxModel.createTypedLiteral(pixelToPolyWKT(p),
+//								"http://www.opengis.net/ont/geosparql#wktLiteral"))
 				.addProperty(LED.location, pxModel.createResource()
 						.addProperty(Geo.lat,
-								pxModel.createTypedLiteral(p.latlong[0]))
+								pxModel.createTypedLiteral(cell.getLat()))
 						.addProperty(Geo.long_,
-								pxModel.createTypedLiteral(p.latlong[1])));
+								pxModel.createTypedLiteral(cell.getLon())));
 
 		// Return an iterable which runs over all the triples in the model we
 		// created above
@@ -142,7 +154,7 @@ public final class LandsatGraph extends GraphBase {
 				return pxModel.listStatements().mapWith(FrontsTriple::asTriple);
 			};
 		};
-	} */
+	}
 
 	/**
 	 * Iterate over all pixels in the attached Landsat tile, returning each as

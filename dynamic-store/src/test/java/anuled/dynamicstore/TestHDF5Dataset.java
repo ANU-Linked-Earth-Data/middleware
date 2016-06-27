@@ -41,10 +41,10 @@ public class TestHDF5Dataset {
 	@Test
 	public void testCellIterator() {
 		int numCells = 0;
-		for (HDF5Dataset.HDF5Cell cell : ds.cells()) {
+		for (HDF5Dataset.Cell cell : ds.cells()) {
 			assertNotNull(cell);
 			numCells = numCells + 1;
 		}
-		// assertEquals(2, numCells);
+		assertEquals(6, numCells);
 	}
 }

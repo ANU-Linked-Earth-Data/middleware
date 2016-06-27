@@ -10,7 +10,7 @@ public class App {
 	public static void main(String[] args) {
 		if (args.length != 1) {
 			System.err.println(
-					"Need a path to a GeoTIFF tile, and no other arguments");
+					"Need a path to an HDF5 tile, and no other arguments");
 			System.exit(1);
 		}
 		LandsatGraph graph = new LandsatGraph(args[0]);
