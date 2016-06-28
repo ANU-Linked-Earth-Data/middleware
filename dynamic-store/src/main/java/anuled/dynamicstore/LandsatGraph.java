@@ -1,9 +1,7 @@
 package anuled.dynamicstore;
 
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.function.Function;
-
+import java.util.stream.Stream;
 import org.apache.jena.graph.FrontsTriple;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.graph.impl.GraphBase;
@@ -104,65 +102,66 @@ public final class LandsatGraph extends GraphBase {
 	}
 
 	/** Convert a pixel into a WKT polygon */
-	/* private String pixelToPolyWKT(TileReader.Pixel p) {
-		double top = p.latlong[0] + reader.getPixelHeight() / 2;
-		double bot = p.latlong[0] - reader.getPixelHeight() / 2;
-		double left = p.latlong[1] - reader.getPixelWidth() / 2;
-		double right = p.latlong[1] + reader.getPixelWidth() / 2;
-		return String.format("POLYGON((%f %f, %f %f, %f %f, %f %f, %f %f))",
-				top, left, top, right, bot, right, bot, left, top, left);
-	} */
-
-	/* private Iterable<Triple> pixelToTriples(TileReader.Pixel p) {
-
-	} */
-	
-	/**
-	 * Convert a HDF5Dataset.Observation to a list of triples; will use pixel data if usePixel
-	 * is specified, otherwise tile data.
+	/*
+	 * private String pixelToPolyWKT(TileReader.Pixel p) { double top =
+	 * p.latlong[0] + reader.getPixelHeight() / 2; double bot = p.latlong[0] -
+	 * reader.getPixelHeight() / 2; double left = p.latlong[1] -
+	 * reader.getPixelWidth() / 2; double right = p.latlong[1] +
+	 * reader.getPixelWidth() / 2; return
+	 * String.format("POLYGON((%f %f, %f %f, %f %f, %f %f, %f %f))", top, left,
+	 * top, right, bot, right, bot, left, top, left); }
 	 */
-	private Iterable<Triple> observationToTriples(Observation obs) {
+
+	/*
+	 * private Iterable<Triple> pixelToTriples(TileReader.Pixel p) {
+	 * 
+	 * }
+	 */
+
+	/**
+	 * Convert a HDF5Dataset.Observation to a list of triples; will use pixel
+	 * data if usePixel is specified, otherwise tile data.
+	 */
+	private Stream<Triple> observationToTriples(Observation obs) {
 		Model pxModel = ModelFactory.createDefaultModel();
 		HDF5Dataset.Cell cell = obs.getCell();
 
-		String url = URLScheme.cellURL(obs);
-		pxModel.createResource(url)
-				.addProperty(RDF.type, LED.Pixel)
+		String url = URLScheme.observationURL(obs);
+		pxModel.createResource(url).addProperty(RDF.type, LED.Pixel)
 				.addProperty(RDF.type, QB.Observation)
 				// XXX: Using p.pixel[0] is badly broken becuase (a) it might
 				// be out of bounds and (b) it will ignore the rest of the bands
-//				.addProperty(LED.imageData,
-//						pxModel.createTypedLiteral(p.pixel[0]))
+				// .addProperty(LED.imageData,
+				// pxModel.createTypedLiteral(p.pixel[0]))
 				// TODO: This should be an xsd:dateTime (so pass
 				// .createTypedLiteral a Java Calendar object)
 				.addProperty(pxModel.createProperty(timeAP.getURI()),
 						pxModel.createLiteral(""))
 				.addProperty(LED.resolution, pxModel.createTypedLiteral(0.0))
-//				.addProperty(LED.bounds,
-//						pxModel.createTypedLiteral(pixelToPolyWKT(p),
-//								"http://www.opengis.net/ont/geosparql#wktLiteral"))
+				// .addProperty(LED.bounds,
+				// pxModel.createTypedLiteral(pixelToPolyWKT(p),
+				// "http://www.opengis.net/ont/geosparql#wktLiteral"))
 				.addProperty(LED.location, pxModel.createResource()
 						.addProperty(Geo.lat,
 								pxModel.createTypedLiteral(cell.getLat()))
 						.addProperty(Geo.long_,
 								pxModel.createTypedLiteral(cell.getLon())));
 
-		// Return an iterable which runs over all the triples in the model we
-		// created above
-		return new Iterable<Triple>() {
-			public Iterator<Triple> iterator() {
-				return pxModel.listStatements().mapWith(FrontsTriple::asTriple);
-			};
-		};
+		// It would be more efficient to convert a Model to a Stream directly,
+		// but I'll leave that for future optimisation
+		return pxModel.listStatements().toList().stream()
+				.map(FrontsTriple::asTriple);
 	}
 
 	/**
 	 * Iterate over all pixels in the attached Landsat tile, returning each as
 	 * an RDF graph.
 	 */
-	private Iterator<Triple> pixelIterator() {
-		return Collections.emptyIterator();
-		// return Iterables.concat(Iterables.transform(reader.pixels(), this::pixelToTriples));
+	private Stream<Triple> pixelStream() {
+		// TODO: I was using Guava here, but it's probably better to use Java 8
+		// streams instead.
+		return reader.cells().flatMap(c -> c.observations())
+				.flatMap(this::observationToTriples);
 	}
 
 	/**
@@ -175,7 +174,7 @@ public final class LandsatGraph extends GraphBase {
 	protected ExtendedIterator<Triple> graphBaseFind(Triple trip) {
 		StmtIterator metaStmts = dataCubeMeta.listStatements();
 		ExtendedIterator<Triple> rv = metaStmts.mapWith(FrontsTriple::asTriple);
-		rv = rv.andThen(pixelIterator());
+		rv = rv.andThen(pixelStream().iterator());
 		return rv;
 	}
 

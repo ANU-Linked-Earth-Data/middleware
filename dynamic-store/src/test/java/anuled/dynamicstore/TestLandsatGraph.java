@@ -19,7 +19,7 @@ public class TestLandsatGraph {
 	
 	@AfterClass
 	public static void tearDownClass() {
-		td.close();
+		td.dispose();
 	}
 
 	@Before
