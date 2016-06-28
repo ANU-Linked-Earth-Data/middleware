@@ -42,17 +42,6 @@
 			<version>14.12.6-r36356</version>
 		</dependency>
 	</dependencies>
-	<repositories>
-		<!-- imageio-ext repo includes some nice libs for interfacing with GeoTIFF -->
-		<repository>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-			<id>imageio-ext-repository</id>
-			<name>imageio-ext Repository</name>
-			<url>http://maven.geo-solutions.it/</url>
-		</repository>
-	</repositories>
 	<build>
 		<plugins>
 			<plugin>

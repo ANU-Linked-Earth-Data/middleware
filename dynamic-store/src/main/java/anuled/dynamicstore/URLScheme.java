@@ -29,12 +29,4 @@ public class URLScheme {
 				obs.getBand());
 		return rv;
 	}
-
-	public class ObservationInfo {
-	}
-
-	public static ObservationInfo parseURL(String url) {
-		// TODO
-		return null;
-	}
 }

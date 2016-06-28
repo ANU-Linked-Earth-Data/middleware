@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -169,9 +170,9 @@ public class HDF5Dataset {
 		 * dataset
 		 */
 		public Stream<Observation> observations() {
-			IntStream bands = IntStream.range(0, getNumBands());
-			return Stream.concat(bands.mapToObj(this::pixelObservation),
-					bands.mapToObj(this::tileObservation));
+			Supplier<IntStream> mkRange = () -> {return IntStream.range(0, getNumBands());};
+			return Stream.concat(mkRange.get().mapToObj(this::pixelObservation),
+					mkRange.get().mapToObj(this::tileObservation));
 		}
 
 		/**
