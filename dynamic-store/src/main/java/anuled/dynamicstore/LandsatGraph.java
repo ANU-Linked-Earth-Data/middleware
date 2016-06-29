@@ -9,11 +9,13 @@ import org.apache.jena.graph.Triple;
 import org.apache.jena.graph.impl.GraphBase;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.RDF;
 
 import anuled.dynamicstore.HDF5Dataset.Observation;
+import anuled.dynamicstore.HDF5Dataset.TileObservation;
 import anuled.vocabulary.Geo;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
@@ -31,9 +33,10 @@ public final class LandsatGraph extends GraphBase {
 	 */
 	private Model dataCubeMeta = ModelFactory.createDefaultModel();
 	private HDF5Dataset reader;
-/*	private Resource qbStructure, qbDSDefinition;
-	private final String prefix = "http://www.example.org/ANU-LED-example#";
-	private Resource timeAP;*/
+	/*
+	 * private Resource qbStructure, qbDSDefinition; private final String prefix
+	 * = "http://www.example.org/ANU-LED-example#"; private Resource timeAP;
+	 */
 
 	public LandsatGraph(String h5Filename) {
 		super();
@@ -45,7 +48,8 @@ public final class LandsatGraph extends GraphBase {
 	private void initMeta() {
 		// TODO: Make metadata customisable. Should be able to pass in a Turtle
 		// file from the command line or something like that.
-		InputStream stream = LandsatGraph.class.getResourceAsStream("/cube-meta.ttl");
+		InputStream stream = LandsatGraph.class
+				.getResourceAsStream("/cube-meta.ttl");
 		dataCubeMeta.read(stream, null, "TTL");
 		try {
 			stream.close();
@@ -79,25 +83,41 @@ public final class LandsatGraph extends GraphBase {
 		HDF5Dataset.Cell cell = obs.getCell();
 
 		String url = URLScheme.observationURL(obs);
-		pxModel.createResource(url).addProperty(RDF.type, LED.Pixel)
+		Resource res = pxModel.createResource(url)
 				.addProperty(RDF.type, QB.Observation)
-				// XXX: Using p.pixel[0] is badly broken becuase (a) it might
-				// be out of bounds and (b) it will ignore the rest of the bands
-				// .addProperty(LED.imageData,
-				// pxModel.createTypedLiteral(p.pixel[0]))
 				// TODO: This should be an xsd:dateTime (so pass
 				// .createTypedLiteral a Java Calendar object)
 //				.addProperty(pxModel.createProperty(timeAP.getURI()),
 //						pxModel.createLiteral(""))
-				.addProperty(LED.resolution, pxModel.createTypedLiteral(0.0))
-				// .addProperty(LED.bounds,
-				// pxModel.createTypedLiteral(pixelToPolyWKT(p),
-				// "http://www.opengis.net/ont/geosparql#wktLiteral"))
+//				.addProperty(LED.resolution, pxModel.createTypedLiteral(0.0))
+//				.addProperty(LED.bounds,
+//						pxModel.createTypedLiteral(pixelToPolyWKT(p),
+//								"http://www.opengis.net/ont/geosparql#wktLiteral"))
 				.addProperty(LED.location, pxModel.createResource()
 						.addProperty(Geo.lat,
 								pxModel.createTypedLiteral(cell.getLat()))
 						.addProperty(Geo.long_,
 								pxModel.createTypedLiteral(cell.getLon())));
+
+		if (obs instanceof HDF5Dataset.PixelObservation) {
+			HDF5Dataset.PixelObservation pixelObs = (HDF5Dataset.PixelObservation)obs;
+			res.addProperty(RDF.type, LED.Pixel)
+				.addProperty(LED.value, pxModel.createTypedLiteral(pixelObs.getPixel()));
+//		    if is_pixel:
+//		        yield from [
+//		            (ident, LED.value, Literal(float(tile))),
+//		            (ident, RDF.type, LED.Pixel)
+//		        ]
+//		    else:
+//		        png_tile = URIRef(array_to_png(tile))
+//		        yield from [
+//		            (ident, LED.imageData, png_tile),
+//		            (ident, RDF.type, LED.GridSquare)
+		} else if (obs instanceof HDF5Dataset.TileObservation) {
+		} else {
+			throw new RuntimeException(
+					"All observations should be either tiles or pixels, but obs is neither");
+		}
 
 		// It would be more efficient to convert a Model to a Stream directly,
 		// but I'll leave that for future optimisation

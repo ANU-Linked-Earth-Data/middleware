@@ -170,7 +170,9 @@ public class HDF5Dataset {
 		 * dataset
 		 */
 		public Stream<Observation> observations() {
-			Supplier<IntStream> mkRange = () -> {return IntStream.range(0, getNumBands());};
+			Supplier<IntStream> mkRange = () -> {
+				return IntStream.range(0, getNumBands());
+			};
 			return Stream.concat(mkRange.get().mapToObj(this::pixelObservation),
 					mkRange.get().mapToObj(this::tileObservation));
 		}
@@ -261,6 +263,10 @@ public class HDF5Dataset {
 		public int getPixelLevel() {
 			return getCellLevel();
 		}
+
+		public double getPixel() {
+			return getCell().pixelData()[getBand()];
+		}
 	}
 
 	/**
@@ -277,6 +283,26 @@ public class HDF5Dataset {
 			int offset = (int) Math
 					.round(Math.log(getCell().tileSize()) / Math.log(3));
 			return getCellLevel() + offset;
+		}
+
+		/** Return contents of tile in row-major order */
+		public short[][] getTile() {
+			MDShortArray arr = getCell().tileData();
+			// XXX: This is probably _very_ slow. Might have to do some
+			// profiling later to see how bad it is. It could be faster to get
+			// the flat array data and reshape it somehow, but that really
+			// depends on MDArray implementation details (which aren't
+			// documented).
+			int[] dims = arr.dimensions();
+			assert dims.length == 3;
+			// row major order
+			short[][] rv = new short[dims[1]][dims[2]];
+			for (int row = 0; row < dims[1]; row++) {
+				for (int col = 0; col < dims[2]; col++) {
+					rv[row][col] = arr.get(band, row, col);
+				}
+			}
+			return rv;
 		}
 	}
 

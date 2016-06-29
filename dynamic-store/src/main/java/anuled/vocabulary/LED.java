@@ -19,6 +19,7 @@ public class LED extends AbstractVocabulary {
 	
 	// Properties
 	public static final Property imageData = property("imageData");
+	public static final Property value = property("value");
 	public static final Property location = property("location");
 	public static final Property bounds = property("bounds");
 	public static final Property resolution = property("resolution");
