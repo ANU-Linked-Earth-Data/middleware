@@ -1,7 +1,9 @@
 package anuled.dynamicstore;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.FrontsTriple;
@@ -15,7 +17,6 @@ import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.RDF;
 
 import anuled.dynamicstore.HDF5Dataset.Observation;
-import anuled.dynamicstore.HDF5Dataset.TileObservation;
 import anuled.vocabulary.Geo;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
@@ -33,10 +34,7 @@ public final class LandsatGraph extends GraphBase {
 	 */
 	private Model dataCubeMeta = ModelFactory.createDefaultModel();
 	private HDF5Dataset reader;
-	/*
-	 * private Resource qbStructure, qbDSDefinition; private final String prefix
-	 * = "http://www.example.org/ANU-LED-example#"; private Resource timeAP;
-	 */
+	private Resource datasetResource;
 
 	public LandsatGraph(String h5Filename) {
 		super();
@@ -56,23 +54,30 @@ public final class LandsatGraph extends GraphBase {
 		} catch (IOException e) {
 			throw new RuntimeException("Error closing metadata stream", e);
 		}
-	}
-	/** Convert a pixel into a WKT polygon */
-	/*
-	 * private String pixelToPolyWKT(TileReader.Pixel p) { double top =
-	 * p.latlong[0] + reader.getPixelHeight() / 2; double bot = p.latlong[0] -
-	 * reader.getPixelHeight() / 2; double left = p.latlong[1] -
-	 * reader.getPixelWidth() / 2; double right = p.latlong[1] +
-	 * reader.getPixelWidth() / 2; return
-	 * String.format("POLYGON((%f %f, %f %f, %f %f, %f %f, %f %f))", top, left,
-	 * top, right, bot, right, bot, left, top, left); }
-	 */
 
-	/*
-	 * private Iterable<Triple> pixelToTriples(TileReader.Pixel p) {
-	 * 
-	 * }
-	 */
+		// find the URI for the actual dataset
+		StmtIterator iter = dataCubeMeta.listStatements(null, RDF.type,
+				QB.DataSet);
+		if (!iter.hasNext()) {
+			throw new RuntimeException(
+					"Invalid configuration: need a qb:DataSet");
+		}
+		datasetResource = iter.nextStatement().getSubject();
+		if (iter.hasNext()) {
+			throw new RuntimeException(
+					"Invalid configuration: can't have more than one qb:DataSet");
+		}
+	}
+
+	/** Convert a pixel into a WKT polygon */
+
+	private String observationToPolyWKT(HDF5Dataset.Observation obs) {
+		// Converts [[0, 1], [1, 2], ...] to '0 1, 1 2, ...'
+		String innerString = obs.getCell().getBounds().stream()
+				.map(p -> p.get(0) + " " + p.get(1))
+				.reduce("", (l, r) -> l + ", " + r);
+		return String.format("POLYGON((%s))", innerString);
+	}
 
 	/**
 	 * Convert a HDF5Dataset.Observation to a list of triples; will use pixel
@@ -81,39 +86,40 @@ public final class LandsatGraph extends GraphBase {
 	private Stream<Triple> observationToTriples(Observation obs) {
 		Model pxModel = ModelFactory.createDefaultModel();
 		HDF5Dataset.Cell cell = obs.getCell();
+		OffsetDateTime obsTimestamp = cell.getDataset().getTimestamp();
 
 		String url = URLScheme.observationURL(obs);
 		Resource res = pxModel.createResource(url)
 				.addProperty(RDF.type, QB.Observation)
-				// TODO: This should be an xsd:dateTime (so pass
-				// .createTypedLiteral a Java Calendar object)
-//				.addProperty(pxModel.createProperty(timeAP.getURI()),
-//						pxModel.createLiteral(""))
-//				.addProperty(LED.resolution, pxModel.createTypedLiteral(0.0))
-//				.addProperty(LED.bounds,
-//						pxModel.createTypedLiteral(pixelToPolyWKT(p),
-//								"http://www.opengis.net/ont/geosparql#wktLiteral"))
-				.addProperty(LED.location, pxModel.createResource()
-						.addProperty(Geo.lat,
-								pxModel.createTypedLiteral(cell.getLat()))
-						.addProperty(Geo.long_,
-								pxModel.createTypedLiteral(cell.getLon())));
-
+				.addProperty(QB.dataSet, datasetResource)
+				.addLiteral(LED.time, obsTimestamp)
+				.addLiteral(LED.resolution, 0.0)
+				.addProperty(LED.bounds,
+						pxModel.createTypedLiteral(observationToPolyWKT(obs),
+								"http://www.opengis.net/ont/geosparql#wktLiteral"))
+				.addProperty(LED.location,
+						pxModel.createResource()
+								.addLiteral(Geo.lat, cell.getLat())
+								.addLiteral(Geo.long_, cell.getLon()))
+				.addProperty(LED.resolution,
+						pxModel.createTypedLiteral(obs.getResolution(),
+								LED.pixelsPerDegree.getURI()))
+				.addLiteral(LED.dggsCell, obs.getCell().getDGGSIdent())
+				.addLiteral(LED.dggsLevelSquare, obs.getCellLevel())
+				.addLiteral(LED.dggsLevelPixel, obs.getPixelLevel());
+		
 		if (obs instanceof HDF5Dataset.PixelObservation) {
-			HDF5Dataset.PixelObservation pixelObs = (HDF5Dataset.PixelObservation)obs;
-			res.addProperty(RDF.type, LED.Pixel)
-				.addProperty(LED.value, pxModel.createTypedLiteral(pixelObs.getPixel()));
-//		    if is_pixel:
-//		        yield from [
-//		            (ident, LED.value, Literal(float(tile))),
-//		            (ident, RDF.type, LED.Pixel)
-//		        ]
-//		    else:
-//		        png_tile = URIRef(array_to_png(tile))
-//		        yield from [
-//		            (ident, LED.imageData, png_tile),
-//		            (ident, RDF.type, LED.GridSquare)
+			HDF5Dataset.PixelObservation pixelObs = (HDF5Dataset.PixelObservation) obs;
+			res.addProperty(RDF.type, LED.Pixel).addProperty(LED.value,
+					pxModel.createTypedLiteral(pixelObs.getPixel()));
 		} else if (obs instanceof HDF5Dataset.TileObservation) {
+			HDF5Dataset.TileObservation tileObs = (HDF5Dataset.TileObservation) obs;
+			short invalidValue = tileObs.getCell().getInvalidValue();
+			BufferedImage tileImage = Util.arrayToImage(tileObs.getTile(),
+					invalidValue);
+			String dataURI = Util.imageToPNGURL(tileImage);
+			res.addProperty(RDF.type, LED.GridSquare).addProperty(LED.imageData,
+					pxModel.createResource(dataURI));
 		} else {
 			throw new RuntimeException(
 					"All observations should be either tiles or pixels, but obs is neither");
@@ -130,8 +136,6 @@ public final class LandsatGraph extends GraphBase {
 	 * an RDF graph.
 	 */
 	private Stream<Triple> pixelStream() {
-		// TODO: I was using Guava here, but it's probably better to use Java 8
-		// streams instead.
 		return reader.cells().flatMap(c -> c.observations())
 				.flatMap(this::observationToTriples);
 	}

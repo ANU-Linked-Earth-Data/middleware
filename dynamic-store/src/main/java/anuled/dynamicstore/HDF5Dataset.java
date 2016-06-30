@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
@@ -90,6 +91,9 @@ public class HDF5Dataset {
 		private String path, dggsIdent;
 		private double[] pixelValue, centre;
 		private int tileSize;
+		private short invalidValue;
+		private List<List<Double>> bounds;
+		private double degreesSpanned;
 
 		/**
 		 * Thrown by the constructor when the given cell is not in the dataset
@@ -119,9 +123,38 @@ public class HDF5Dataset {
 			IHDF5DoubleReader doubleReader = fp.float64();
 			centre = doubleReader.getArrayAttr(path, "centre");
 
+			IHDF5ShortReader shortReader = fp.int16();
+			invalidValue = shortReader.getAttr(path, "missing_value");
+
+			// bounds are list of (lon, lat), IIRC
+			double[][] allBounds = doubleReader.getMatrixAttr(path, "bounds");
+			// We need at least four coordinates to make a non-degenerate shape
+			assert allBounds.length >= 4;
+			bounds = new ArrayList<List<Double>>();
+			double minLat, maxLat, minLon, maxLon;
+			minLat = minLon = Double.POSITIVE_INFINITY;
+			maxLat = maxLon = Double.NEGATIVE_INFINITY;
+			for (int row = 0; row < allBounds.length; row++) {
+				List<Double> pair = new ArrayList<Double>(2);
+				double[] thisRow = allBounds[row];
+				assert thisRow.length == 2;
+				double lon = thisRow[0];
+				double lat = thisRow[1];
+				pair.add(lon);
+				pair.add(lat);
+				bounds.add(pair);
+				
+				minLat = Math.min(minLat, lat);
+				maxLat = Math.max(maxLat, lat);
+				minLon = Math.min(minLon, lon);
+				maxLon = Math.max(maxLon, lon);
+			}
+			
+			// This will be used for resolution calculation
+			degreesSpanned = (maxLat - minLat + maxLon - minLon) / 2;
+
 			/*
-			 * Other things to extract: bounds (f64x5x2), lat (f64), lon (f64),
-			 * missing_value (i64).
+			 * Other attributes to extract (if needed): lat (f64), lon (f64)
 			 */
 		}
 
@@ -142,6 +175,14 @@ public class HDF5Dataset {
 			IHDF5ShortReader dataReader = fp.int16();
 			MDShortArray rv = dataReader.readMDArray(path + "/data");
 			return rv;
+		}
+
+		/**
+		 * Approximate number of degrees (of latitude or longitude) spanned by
+		 * the cell
+		 */
+		public double getDegreesSpanned() {
+			return degreesSpanned;
 		}
 
 		/** Return the parent dataset containing this cell */
@@ -203,6 +244,15 @@ public class HDF5Dataset {
 		public String toString() {
 			return "Cell " + getDGGSIdent();
 		}
+
+		/** Returns the int16 value used to mark invalid pixels */
+		public short getInvalidValue() {
+			return invalidValue;
+		}
+
+		public List<List<Double>> getBounds() {
+			return bounds;
+		}
 	}
 
 	/**
@@ -247,6 +297,8 @@ public class HDF5Dataset {
 		 * more than the cell level).
 		 */
 		public abstract int getPixelLevel();
+
+		public abstract double getResolution();
 	}
 
 	/**
@@ -266,6 +318,10 @@ public class HDF5Dataset {
 
 		public double getPixel() {
 			return getCell().pixelData()[getBand()];
+		}
+
+		public double getResolution() {
+			return 1.0 / getCell().getDegreesSpanned();
 		}
 	}
 
@@ -303,6 +359,10 @@ public class HDF5Dataset {
 				}
 			}
 			return rv;
+		}
+
+		public double getResolution() {
+			return getCell().tileSize() / getCell().getDegreesSpanned();
 		}
 	}
 

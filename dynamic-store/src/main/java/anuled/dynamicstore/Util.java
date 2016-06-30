@@ -32,9 +32,13 @@ public class Util {
 		return rv;
 	}
 	
-	public static String imageToPNGURL(BufferedImage im) throws IOException {
+	public static String imageToPNGURL(BufferedImage im) {
 		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-		ImageIO.write(im, "PNG", outStream);
+		try {
+			ImageIO.write(im, "PNG", outStream);
+		} catch (IOException e) {
+			throw new RuntimeException("Could not convert to PNG", e);
+		}
 		byte[] rawData = outStream.toByteArray();
 		String b64Data = Base64.getEncoder().encodeToString(rawData);
 		return "data:image/png;base64," + b64Data;

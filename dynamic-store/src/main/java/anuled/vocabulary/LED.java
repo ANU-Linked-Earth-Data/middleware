@@ -25,4 +25,8 @@ public class LED extends AbstractVocabulary {
 	public static final Property resolution = property("resolution");
 	public static final Property containedInSquare = property("containedInSquare");
 	public static final Property containsSquare = property("containsSquare");
+	public static final Property time = property("time");
+	public static final Property dggsCell = property("dggsCell");
+	public static final Property dggsLevelSquare = property("dggsLevelSquare");
+	public static final Property dggsLevelPixel = property("dggsLevelPixel");
 }
