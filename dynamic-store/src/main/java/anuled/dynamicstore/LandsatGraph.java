@@ -151,7 +151,7 @@ public final class LandsatGraph extends GraphBase {
 	protected ExtendedIterator<Triple> graphBaseFind(Triple trip) {
 		StmtIterator metaStmts = dataCubeMeta.listStatements();
 		ExtendedIterator<Triple> rv = metaStmts.mapWith(FrontsTriple::asTriple);
-		rv = rv.andThen(pixelStream().iterator());
+		rv = rv.andThen(pixelStream().filter(trip::matches).iterator());
 		return rv;
 	}
 
