@@ -3,7 +3,7 @@ package anuled.dynamicstore;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.OffsetDateTime;
+import java.util.GregorianCalendar;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.FrontsTriple;
@@ -86,7 +86,8 @@ public final class LandsatGraph extends GraphBase {
 	private Stream<Triple> observationToTriples(Observation obs) {
 		Model pxModel = ModelFactory.createDefaultModel();
 		HDF5Dataset.Cell cell = obs.getCell();
-		OffsetDateTime obsTimestamp = cell.getDataset().getTimestamp();
+		GregorianCalendar obsTimestamp = GregorianCalendar
+				.from(cell.getDataset().getTimestamp().toZonedDateTime());
 
 		String url = URLScheme.observationURL(obs);
 		Resource res = pxModel.createResource(url)
@@ -107,7 +108,7 @@ public final class LandsatGraph extends GraphBase {
 				.addLiteral(LED.dggsCell, obs.getCell().getDGGSIdent())
 				.addLiteral(LED.dggsLevelSquare, obs.getCellLevel())
 				.addLiteral(LED.dggsLevelPixel, obs.getPixelLevel());
-		
+
 		if (obs instanceof HDF5Dataset.PixelObservation) {
 			HDF5Dataset.PixelObservation pixelObs = (HDF5Dataset.PixelObservation) obs;
 			res.addProperty(RDF.type, LED.Pixel).addProperty(LED.value,

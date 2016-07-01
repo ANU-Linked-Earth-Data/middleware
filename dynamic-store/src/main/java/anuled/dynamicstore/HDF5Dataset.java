@@ -117,7 +117,7 @@ public class HDF5Dataset {
 					.getDimensions();
 			assert dims.length == 3 && dims[1] == dims[2]
 					&& dims[0] == getNumBands();
-			tileSize = (int) dims[0];
+			tileSize = (int) dims[1];
 
 			// centre is (lon, lat)
 			IHDF5DoubleReader doubleReader = fp.float64();
@@ -226,7 +226,7 @@ public class HDF5Dataset {
 		}
 
 		/** Get the size of the tile associated with this cell */
-		public double tileSize() {
+		public int tileSize() {
 			return tileSize;
 		}
 
