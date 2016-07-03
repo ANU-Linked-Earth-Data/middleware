@@ -12,6 +12,7 @@ import org.apache.jena.graph.impl.GraphBase;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.RDF;
@@ -149,7 +150,10 @@ public final class LandsatGraph extends GraphBase {
 	 */
 	@Override
 	protected ExtendedIterator<Triple> graphBaseFind(Triple trip) {
-		StmtIterator metaStmts = dataCubeMeta.listStatements();
+		Statement stmt = dataCubeMeta.asStatement(trip);
+		StmtIterator metaStmts = dataCubeMeta.listStatements(stmt.getSubject(),
+				stmt.getPredicate(), stmt.getObject());
+
 		ExtendedIterator<Triple> rv = metaStmts.mapWith(FrontsTriple::asTriple);
 		rv = rv.andThen(pixelStream().filter(trip::matches).iterator());
 		return rv;
