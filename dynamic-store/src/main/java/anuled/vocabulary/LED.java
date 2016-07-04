@@ -8,6 +8,7 @@ import org.apache.jena.rdf.model.Resource;
  *
  */
 public class LED extends AbstractVocabulary {
+
 	static {
 		uri = "http://www.anulinkedearth.org/sandbox/ANU-LED#";
 	}
@@ -29,4 +30,8 @@ public class LED extends AbstractVocabulary {
 	public static final Property dggsCell = property("dggsCell");
 	public static final Property dggsLevelSquare = property("dggsLevelSquare");
 	public static final Property dggsLevelPixel = property("dggsLevelPixel");
+	
+	// These are for Jena
+	public static final Property hdf5Path = property("hdf5Path");
+	public static final Resource LandsatGraph = resource("LandsatGraph");
 }

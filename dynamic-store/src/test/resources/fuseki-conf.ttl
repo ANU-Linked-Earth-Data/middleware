@@ -1,0 +1,35 @@
+# This file is a test configuration for Fuseki. It should load the HDF5 fixture
+# in this directory into a Landsat graph, which Fuseki will then be able to
+# query.
+
+# Adapted from https://github.com/rdfhdt/hdt-java/blob/master/hdt-fuseki/fuseki_example.ttl
+
+@prefix : <#> .
+@prefix led: <http://www.anulinkedearth.org/sandbox/ANU-LED#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ja: <http://jena.hpl.hp.com/2005/11/Assembler#> .
+@prefix fu: <http://jena.apache.org/fuseki#> .
+
+[] a fu:Server
+    ; ja:loadClass "anuled.dynamicstore.LandsatGraphAssembler"
+    ; fu:services (<#testService>)
+    .
+
+led:LandsatGraph rdfs:subClassOf ja:Object .
+
+<#testService> a fu:Service
+    ; fu:name "LandsatService"
+    ; fu:serviceQuery "query"
+    ; fu:serviceReadGraphStore "get"
+    ; fu:dataset <#testDataset>
+    .
+ 
+<#testDataset> a ja:RDFDataset
+    ; rdfs:label "Landsat dataset"
+    ; ja:defaultGraph <#testGraph>
+    .
+
+<#testGraph> a led:LandsatGraph
+    ; rdfs:label "Graph loaded from test HDF5 fixture"
+    ; led:hdf5Path <LS8_OLI_TIRS_NBAR_149_-036_2013-05-27T23-58-20.h5>
+    .

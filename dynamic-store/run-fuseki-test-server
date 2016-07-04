@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -e
+
+# Start by building our code
+TARGET="target/dynamic-store-1.0-SNAPSHOT.jar"
+if [ ! -f "$TARGET" ]; then
+    echo "Target $TARGET missing; rebuilding"
+    sleep 1
+    mvn package
+fi
+
+# Now fetch Fuseki and run it with our custom classes
+. get-fuseki.sh
+export FUSEKI_HOME="$FUSEKI_DIR"
+export FUSEKI_BASE="$WORK_DIR/fuseki-base"
+export EXTRA_JARS="$TARGET"
+echo "Running test server"
+exec "$FUSEKI_DIR/fuseki-server" --conf=src/test/resources/fuseki-conf.ttl $@

@@ -16,3 +16,4 @@ buildNumber.properties
 
 # Dependencies
 jhdf5/
+fuseki/

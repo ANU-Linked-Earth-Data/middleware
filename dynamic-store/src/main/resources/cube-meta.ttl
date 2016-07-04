@@ -1,6 +1,6 @@
 @prefix : <http://www.example.org/ANU-LED-example#> .
 @prefix qb: <http://purl.org/linked-data/cube#> .
-@prefix led: <http://www.example.org/ANU-LED#> .
+@prefix led: <http://www.anulinkedearth.org/sandbox/ANU-LED#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix gcmd-platform: <http://geobrain.laits.gmu.edu/ontology/2004/11/gcmd-platform.owl#> .

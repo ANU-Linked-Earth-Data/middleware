@@ -26,16 +26,16 @@
 		</dependency>
 		<!-- Check out jena-fuseki-server's pom.xml to how to build a runnable 
 			Fuseki jar -->
-		<dependency>
-			<groupId>org.apache.jena</groupId>
-			<artifactId>jena-fuseki-core</artifactId>
-			<version>2.4.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.jena</groupId>
-			<artifactId>jena-cmds</artifactId>
-			<version>3.1.0</version>
-		</dependency>
+		<!-- <dependency> -->
+		<!-- <groupId>org.apache.jena</groupId> -->
+		<!-- <artifactId>jena-fuseki-core</artifactId> -->
+		<!-- <version>2.4.0</version> -->
+		<!-- </dependency> -->
+		<!-- <dependency> -->
+		<!-- <groupId>org.apache.jena</groupId> -->
+		<!-- <artifactId>jena-cmds</artifactId> -->
+		<!-- <version>3.1.0</version> -->
+		<!-- </dependency> -->
 		<dependency>
 			<groupId>ch.systemsx.cisd</groupId>
 			<artifactId>jhdf5</artifactId>
@@ -65,10 +65,14 @@
 						</goals>
 						<configuration>
 							<transformers>
-								<transformer
-									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>org.apache.jena.fuseki.cmd.FusekiCmd</mainClass>
-								</transformer>
+								<!-- I used to have this as the main class of the produced jar, but 
+									I've sinced realised that a better deployment model is to use ordinary Fuseki 
+									with the Java classpath modified to include our custom implementation stuff 
+									as necessary. -->
+								<!-- <transformer -->
+								<!-- implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"> -->
+								<!-- <mainClass>org.apache.jena.fuseki.cmd.FusekiCmd</mainClass> -->
+								<!-- </transformer> -->
 								<transformer
 									implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
 							</transformers>
