@@ -41,6 +41,15 @@
 			<artifactId>jhdf5</artifactId>
 			<version>14.12.6-r36356</version>
 		</dependency>
+		<dependency>
+			<!-- This is here to shut up SLF4J, which gives a warning during unit 
+				testing if no logger implementation is on the classpath. Test scope is important, 
+				since we don't want to force a nop logger in the final build. -->
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-nop</artifactId>
+			<version>1.7.21</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>

@@ -1,0 +1,21 @@
+# Similar to the Fuseki config, but does not actually declare a Fuseki service.
+# This file is useful for testing the assembler definition.
+
+@prefix : <#> .
+@prefix led: <http://www.anulinkedearth.org/sandbox/ANU-LED#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ja: <http://jena.hpl.hp.com/2005/11/Assembler#> .
+
+[] ja:loadClass "anuled.dynamicstore.LandsatGraphAssembler" .
+
+led:LandsatGraph rdfs:subClassOf ja:Object .
+ 
+<#testDataset> a ja:RDFDataset
+    ; rdfs:label "Landsat dataset"
+    ; ja:defaultGraph <#testGraph>
+    .
+
+<#testGraph> a led:LandsatGraph
+    ; rdfs:label "Graph loaded from test HDF5 fixture"
+    ; led:hdf5Path <ignored_by_test>
+    .
