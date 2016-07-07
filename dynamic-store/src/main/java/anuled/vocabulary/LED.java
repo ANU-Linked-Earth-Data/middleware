@@ -30,6 +30,7 @@ public class LED extends AbstractVocabulary {
 	public static final Property dggsCell = property("dggsCell");
 	public static final Property dggsLevelSquare = property("dggsLevelSquare");
 	public static final Property dggsLevelPixel = property("dggsLevelPixel");
+	public static final Property etmBand = property("etmBand");
 	
 	// These are for Jena
 	public static final Property hdf5Path = property("hdf5Path");

@@ -91,6 +91,7 @@ public final class LandsatGraph extends GraphBase {
 				.from(cell.getDataset().getTimestamp().toZonedDateTime());
 
 		String url = URLScheme.observationURL(obs);
+		String locationURL = url.replaceFirst("/?$", "/location");
 		Resource res = pxModel.createResource(url)
 				.addProperty(RDF.type, QB.Observation)
 				.addProperty(QB.dataSet, datasetResource)
@@ -100,7 +101,10 @@ public final class LandsatGraph extends GraphBase {
 						pxModel.createTypedLiteral(observationToPolyWKT(obs),
 								"http://www.opengis.net/ont/geosparql#wktLiteral"))
 				.addProperty(LED.location,
-						pxModel.createResource()
+						// This can't be a blank node, since Jena can't find the
+						// other side of a blank relationship with graphBaseFind
+						// ;_;
+						pxModel.createResource(locationURL)
 								.addLiteral(Geo.lat, cell.getLat())
 								.addLiteral(Geo.long_, cell.getLon()))
 				.addProperty(LED.resolution,
@@ -108,7 +112,8 @@ public final class LandsatGraph extends GraphBase {
 								LED.pixelsPerDegree.getURI()))
 				.addLiteral(LED.dggsCell, obs.getCell().getDGGSIdent())
 				.addLiteral(LED.dggsLevelSquare, obs.getCellLevel())
-				.addLiteral(LED.dggsLevelPixel, obs.getPixelLevel());
+				.addLiteral(LED.dggsLevelPixel, obs.getPixelLevel())
+				.addLiteral(LED.etmBand, obs.getBand());
 
 		if (obs instanceof HDF5Dataset.PixelObservation) {
 			HDF5Dataset.PixelObservation pixelObs = (HDF5Dataset.PixelObservation) obs;

@@ -9,7 +9,7 @@ import org.apache.jena.rdf.model.Resource;
  */
 public class Geo extends AbstractVocabulary {
 	static {
-		uri = "https://www.w3.org/2003/01/geo/wgs84_pos#";
+		uri = "http://www.w3.org/2003/01/geo/wgs84_pos#";
 	}
 
 	// Classes

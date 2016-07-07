@@ -22,7 +22,7 @@ public class TestVocabularies {
 		assertTrue(GCMDPlatform.LANDSAT_7.getURI().startsWith(
 				"http://geobrain.laits.gmu.edu/ontology/2004/11/gcmd-platform.owl#"));
 		assertTrue(Geo.lat.getURI()
-				.startsWith("https://www.w3.org/2003/01/geo/wgs84_pos#"));
+				.startsWith("http://www.w3.org/2003/01/geo/wgs84_pos#"));
 		assertTrue(LED.value.getURI()
 				.startsWith("http://www.anulinkedearth.org/"));
 		assertTrue(QB.ComponentProperty.getURI()
