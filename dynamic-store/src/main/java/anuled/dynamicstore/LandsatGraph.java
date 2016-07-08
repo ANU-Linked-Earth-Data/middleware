@@ -91,7 +91,6 @@ public final class LandsatGraph extends GraphBase {
 				.from(cell.getDataset().getTimestamp().toZonedDateTime());
 
 		String url = URLScheme.observationURL(obs);
-		String locationURL = url.replaceFirst("/?$", "/location");
 		Resource res = pxModel.createResource(url)
 				.addProperty(RDF.type, QB.Observation)
 				.addProperty(QB.dataSet, datasetResource)
@@ -100,13 +99,8 @@ public final class LandsatGraph extends GraphBase {
 				.addProperty(LED.bounds,
 						pxModel.createTypedLiteral(observationToPolyWKT(obs),
 								"http://www.opengis.net/ont/geosparql#wktLiteral"))
-				.addProperty(LED.location,
-						// This can't be a blank node, since Jena can't find the
-						// other side of a blank relationship with graphBaseFind
-						// ;_;
-						pxModel.createResource(locationURL)
-								.addLiteral(Geo.lat, cell.getLat())
-								.addLiteral(Geo.long_, cell.getLon()))
+				.addLiteral(Geo.lat, cell.getLat())
+				.addLiteral(Geo.long_, cell.getLon())
 				.addProperty(LED.resolution,
 						pxModel.createTypedLiteral(obs.getResolution(),
 								LED.pixelsPerDegree.getURI()))
