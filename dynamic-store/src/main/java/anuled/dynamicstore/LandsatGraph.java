@@ -17,7 +17,8 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.RDF;
 
-import anuled.dynamicstore.HDF5Dataset.Observation;
+import anuled.dynamicstore.backend.HDF5Dataset;
+import anuled.dynamicstore.backend.HDF5Dataset.Observation;
 import anuled.vocabulary.Geo;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
@@ -72,7 +73,7 @@ public final class LandsatGraph extends GraphBase {
 
 	/** Convert a pixel into a WKT polygon */
 
-	private String observationToPolyWKT(HDF5Dataset.Observation obs) {
+	private static String observationToPolyWKT(HDF5Dataset.Observation obs) {
 		// Converts [[0, 1], [1, 2], ...] to '0 1, 1 2, ...'
 		String innerString = obs.getCell().getBounds().stream()
 				.map(p -> p.get(0) + " " + p.get(1))
@@ -137,7 +138,7 @@ public final class LandsatGraph extends GraphBase {
 	 * an RDF graph.
 	 */
 	private Stream<Triple> pixelStream() {
-		return reader.cells().flatMap(c -> c.observations())
+		return reader.cells(null, null).flatMap(c -> c.observations(null, null))
 				.flatMap(this::observationToTriples);
 	}
 
@@ -153,6 +154,12 @@ public final class LandsatGraph extends GraphBase {
 		StmtIterator metaStmts = dataCubeMeta.listStatements(stmt.getSubject(),
 				stmt.getPredicate(), stmt.getObject());
 
+		// TODO: Need to be smarter about how we respond to triple queries. The
+		// graph has already been flattened so that there's only a small set of
+		// predicates and a single "type" of subject, so it should be relatively
+		// easy to answer queries which only have NULL in one or two parts of
+		// the triple. For some good examples, see
+		// https://www.anutechlauncher.net/projects/linked-earth-observations/wiki/Dynamic_RDF_generation
 		ExtendedIterator<Triple> rv = metaStmts.mapWith(FrontsTriple::asTriple);
 		rv = rv.andThen(pixelStream().filter(trip::matches).iterator());
 		return rv;

@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
+import anuled.dynamicstore.backend.TestHDF5Dataset;
+
 /** Utility class which exposes a test HDF5 file for unit tests to use. */
 public final class TestData {
 	private static String TEST_H5_NAME = "/LS8_OLI_TIRS_NBAR_149_-036_2013-05-27T23-58-20.h5";

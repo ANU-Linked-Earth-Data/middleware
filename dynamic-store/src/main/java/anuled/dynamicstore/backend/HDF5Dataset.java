@@ -1,10 +1,12 @@
-package anuled.dynamicstore;
+package anuled.dynamicstore.backend;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
@@ -22,7 +24,8 @@ import ncsa.hdf.hdf5lib.exceptions.HDF5SymbolTableException;
 
 public class HDF5Dataset {
 	private IHDF5Reader fp;
-	private Collection<Cell> cells;
+	private Map<Integer, Collection<Cell>> cellsByLevel;
+	private Map<String, Cell> cellsByID;
 
 	/* Dataset-wide metadata */
 	private OffsetDateTime obsDate;
@@ -33,7 +36,7 @@ public class HDF5Dataset {
 		fp = HDF5Factory.openForReading(filename);
 		// Read all cells into core (but not their data); makes our job easier
 		// later
-		cells = populateCells();
+		populateCells();
 		readMeta();
 	}
 
@@ -46,20 +49,29 @@ public class HDF5Dataset {
 		sensorID = stringReader.getAttr("/", "sensor_id");
 	}
 
-	private Collection<Cell> populateCells() {
+	private void populateCells() {
+		cellsByLevel = new HashMap<Integer, Collection<Cell>>();
+		cellsByID = new HashMap<String, Cell>();
 		Queue<String> to_explore = new LinkedList<String>();
 		to_explore.add("/");
 		assert fp.isGroup(to_explore.peek());
 
 		// Populate list of HDF5Cells (albeit only ones with data in them!)
-		Collection<Cell> rv = new ArrayList<Cell>();
 		while (!to_explore.isEmpty()) {
 			String group = to_explore.remove();
 
 			// Append this node to the index iff it looks like real data
 			try {
 				Cell cell = new Cell(group);
-				rv.add(cell);
+				Integer level = cell.getDGGSIdent().length();
+				if (cellsByLevel.containsKey(level)) {
+					cellsByLevel.get(level).add(cell);
+				} else {
+					Collection<Cell> newList = new ArrayList<Cell>();
+					newList.add(cell);
+					cellsByLevel.put(Integer.valueOf(level), newList);
+				}
+				cellsByID.put(cell.getDGGSIdent(), cell);
 			} catch (Cell.NotACell e) {
 				/* pass */
 			}
@@ -76,7 +88,6 @@ public class HDF5Dataset {
 				}
 			}
 		}
-		return rv;
 	}
 
 	/** Call this function after using the class to clean up HDF5 references. */
@@ -143,13 +154,13 @@ public class HDF5Dataset {
 				pair.add(lon);
 				pair.add(lat);
 				bounds.add(pair);
-				
+
 				minLat = Math.min(minLat, lat);
 				maxLat = Math.max(maxLat, lat);
 				minLon = Math.min(minLon, lon);
 				maxLon = Math.max(maxLon, lon);
 			}
-			
+
 			// This will be used for resolution calculation
 			degreesSpanned = (maxLat - minLat + maxLon - minLon) / 2;
 
@@ -209,13 +220,51 @@ public class HDF5Dataset {
 		/**
 		 * Yield a stream of pixel and tile observations across all bands of the
 		 * dataset
+		 * 
+		 * @param band
+		 *            sensor band for all observations, or null if all bands are
+		 *            desired.
+		 * @param expectedType
+		 *            {@link TileObservation}, {@link PixelObservation} or null,
+		 *            depending on which type of observation (if any particular
+		 *            type) is desired.
 		 */
-		public Stream<Observation> observations() {
-			Supplier<IntStream> mkRange = () -> {
-				return IntStream.range(0, getNumBands());
-			};
-			return Stream.concat(mkRange.get().mapToObj(this::pixelObservation),
-					mkRange.get().mapToObj(this::tileObservation));
+		public Stream<Observation> observations(Integer band,
+				Class<?> expectedType) {
+			Supplier<IntStream> mkRange;
+			if (band == null) {
+				mkRange = () -> {
+					return IntStream.range(0, getNumBands());
+				};
+			} else {
+				mkRange = () -> {
+					return IntStream.of(band);
+				};
+			}
+
+			boolean expectsPixel;
+			if (expectedType == null) {
+				expectsPixel = false; // arbitrary, fixes linter warnings
+			} else if (expectedType.equals(PixelObservation.class)) {
+				expectsPixel = true;
+			} else if (expectedType.equals(TileObservation.class)) {
+				expectsPixel = false;
+			} else {
+				throw new RuntimeException("Expected type must be "
+						+ "PixelObservation or TileObservation");
+			}
+
+			// Now construct the return stream
+			Stream<Observation> rvStream = Stream.of();
+			if (expectedType == null || !expectsPixel) {
+				rvStream = Stream.concat(rvStream,
+						mkRange.get().mapToObj(this::tileObservation));
+			}
+			if (expectedType == null || expectsPixel) {
+				rvStream = Stream.concat(rvStream,
+						mkRange.get().mapToObj(this::pixelObservation));
+			}
+			return rvStream;
 		}
 
 		/**
@@ -252,6 +301,19 @@ public class HDF5Dataset {
 
 		public List<List<Double>> getBounds() {
 			return bounds;
+		}
+
+		@Override
+		public int hashCode() {
+			return dggsIdent.hashCode();
+		}
+
+		@Override
+		public boolean equals(Object other) {
+			if (other instanceof Cell) {
+				return ((Cell) other).getDGGSIdent() == dggsIdent;
+			}
+			return false;
 		}
 	}
 
@@ -307,7 +369,7 @@ public class HDF5Dataset {
 	 * entire DGGS cell (e.g. the green level averaged over the whole extent of
 	 * the cell).
 	 */
-	public class PixelObservation extends Observation {
+	public final class PixelObservation extends Observation {
 		private PixelObservation(Cell cell, int band) {
 			super(cell, band);
 		}
@@ -330,7 +392,7 @@ public class HDF5Dataset {
 	 * <code>PixelObservation</code>, this class uses a square grid of many
 	 * pixels to summarise cell contents.
 	 */
-	public class TileObservation extends Observation {
+	public final class TileObservation extends Observation {
 		private TileObservation(Cell cell, int band) {
 			super(cell, band);
 		}
@@ -366,15 +428,50 @@ public class HDF5Dataset {
 		}
 	}
 
-	/** Get an iterable over all cells in the dataset. */
-	public Stream<Cell> cells() {
-		return cells.stream();
+	/**
+	 * Get an iterable over cells in the dataset.
+	 * 
+	 * @param cellLevel
+	 *            numeric level in the DGGS hierarchy at which the cell should
+	 *            occur, or null if all levels desired.
+	 * @param cellID
+	 *            DGGS ID for the cell (e.g. R78523).
+	 */
+	public Stream<Cell> cells(Integer cellLevel, String cellID) {
+		if (cellLevel != null && cellID != null
+				&& cellID.length() != cellLevel) {
+			throw new RuntimeException("Cell level and ID must be consistent");
+		}
+
+		// If a cell ID was specified, use it
+		if (cellID != null) {
+			Cell theCell = cellsByID.get(cellID);
+			if (theCell != null) {
+				return Stream.of(theCell);
+			}
+			return Stream.of();
+		}
+
+		// If a cell level was specified, but not a cell ID, return all cells at
+		// the given level
+		if (cellLevel != null) {
+			Collection<Cell> theCells = cellsByLevel.get(cellLevel);
+			if (theCells != null) {
+				return theCells.stream();
+			}
+			return Stream.of();
+		}
+
+		// If no constraints were specified, return all cells
+		return cellsByLevel.values().stream().flatMap(l -> l.stream());
 	}
 
 	/**
 	 * Retrieve the cell corresponding to a specific DGGS ID (e.g.
-	 * <code>R7852</code>). Return a <code>Cell</code> instance, or
-	 * <code>null</code> if no cell can be found.
+	 * <code>R7852</code>).
+	 * 
+	 * @return <code>Cell</code> instance, or <code>null</code> if no cell can
+	 *         be found.
 	 */
 	public Cell dggsCell(String dggsID) {
 		String path = dggsID.replaceAll("(.)", "/$1");

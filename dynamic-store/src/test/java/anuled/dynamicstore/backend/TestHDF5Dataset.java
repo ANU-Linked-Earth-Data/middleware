@@ -1,11 +1,14 @@
-package anuled.dynamicstore;
+package anuled.dynamicstore.backend;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import anuled.dynamicstore.HDF5Dataset.PixelObservation;
-import anuled.dynamicstore.HDF5Dataset.TileObservation;
+import anuled.dynamicstore.TestData;
+import anuled.dynamicstore.URLScheme;
+import anuled.dynamicstore.backend.HDF5Dataset;
+import anuled.dynamicstore.backend.HDF5Dataset.PixelObservation;
+import anuled.dynamicstore.backend.HDF5Dataset.TileObservation;
 import ch.systemsx.cisd.base.mdarray.MDShortArray;
 
 import static org.junit.Assert.*;
@@ -50,8 +53,8 @@ public class TestHDF5Dataset {
 
 	@Test
 	public void testCellIterator() {
-		ds.cells().forEach(Assert::assertNotNull);
-		assertEquals(6, ds.cells().count());
+		ds.cells(null, null).forEach(Assert::assertNotNull);
+		assertEquals(6, ds.cells(null, null).count());
 	}
 
 	@Test
@@ -119,7 +122,7 @@ public class TestHDF5Dataset {
 		MDShortArray td = cell.tileData();
 		int[] dims = td.dimensions();
 		assertArrayEquals(new int[] { 7, 9, 9 }, dims);
-		Stream<HDF5Dataset.Observation> obs = cell.observations();
+		Stream<HDF5Dataset.Observation> obs = cell.observations(null, null);
 		assertEquals(14, obs.count());
 	}
 	

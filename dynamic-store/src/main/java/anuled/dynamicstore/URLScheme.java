@@ -6,6 +6,8 @@ import java.time.ZonedDateTime;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import anuled.dynamicstore.backend.HDF5Dataset;
+
 /**
  * Code for formatting and parsing using our observation URL scheme.
  */
