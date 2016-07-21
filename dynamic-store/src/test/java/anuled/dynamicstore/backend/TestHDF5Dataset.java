@@ -5,10 +5,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import anuled.dynamicstore.TestData;
-import anuled.dynamicstore.URLScheme;
 import anuled.dynamicstore.backend.HDF5Dataset;
-import anuled.dynamicstore.backend.HDF5Dataset.PixelObservation;
-import anuled.dynamicstore.backend.HDF5Dataset.TileObservation;
+import anuled.dynamicstore.backend.PixelObservation;
+import anuled.dynamicstore.backend.TileObservation;
+import anuled.dynamicstore.rdfmapper.URLScheme;
 import ch.systemsx.cisd.base.mdarray.MDShortArray;
 
 import static org.junit.Assert.*;
@@ -59,16 +59,16 @@ public class TestHDF5Dataset {
 
 	@Test
 	public void testURLs() {
-		HDF5Dataset.Cell cell = ds.dggsCell("R7852");
+		Cell cell = ds.dggsCell("R7852");
 		assertNotNull(cell);
 
-		HDF5Dataset.PixelObservation pxObs = cell.pixelObservation(4);
+		PixelObservation pxObs = cell.pixelObservation(4);
 		assertNotNull(pxObs);
 		assertEquals(
 				"https://anulinkedearth.org/rdf/observation/2013/05/27/23/58/20/cell/R7852/levelSquare-5/levelPixel-5/band-4",
 				URLScheme.observationURL(pxObs));
 
-		HDF5Dataset.TileObservation tlObs = cell.tileObservation(4);
+		TileObservation tlObs = cell.tileObservation(4);
 		assertNotNull(tlObs);
 		assertEquals(
 				"https://anulinkedearth.org/rdf/observation/2013/05/27/23/58/20/cell/R7852/levelSquare-5/levelPixel-7/band-4",
@@ -86,7 +86,7 @@ public class TestHDF5Dataset {
 
 		// check cell metadata is correct
 		String dggsIdent = "R78520";
-		HDF5Dataset.Cell cell = ds.dggsCell(dggsIdent);
+		Cell cell = ds.dggsCell(dggsIdent);
 		assertNotNull(cell);
 		assertEquals(7, cell.getNumBands());
 		assertEquals(dggsIdent, cell.getDGGSIdent());
@@ -109,7 +109,7 @@ public class TestHDF5Dataset {
 	@Test
 	public void testCell() {
 		// Make sure that getting an invalid cell returns null
-		HDF5Dataset.Cell cell = ds.dggsCell("R7852999");
+		Cell cell = ds.dggsCell("R7852999");
 		assertNull(cell);
 		
 		// Now proceed with a valid cell		
@@ -122,13 +122,13 @@ public class TestHDF5Dataset {
 		MDShortArray td = cell.tileData();
 		int[] dims = td.dimensions();
 		assertArrayEquals(new int[] { 7, 9, 9 }, dims);
-		Stream<HDF5Dataset.Observation> obs = cell.observations(null, null);
+		Stream<Observation> obs = cell.observations(null, null);
 		assertEquals(14, obs.count());
 	}
 	
 	@Test
 	public void testObs() {
-		HDF5Dataset.Cell cell = ds.dggsCell("R78520");
+		Cell cell = ds.dggsCell("R78520");
 		assertNotNull(cell);
 		
 		PixelObservation pixelObs = cell.pixelObservation(3);

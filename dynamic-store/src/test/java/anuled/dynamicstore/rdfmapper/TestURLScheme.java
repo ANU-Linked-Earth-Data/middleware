@@ -1,10 +1,12 @@
-package anuled.dynamicstore;
+package anuled.dynamicstore.rdfmapper;
 
 import static org.junit.Assert.*;
 
 import java.time.ZonedDateTime;
 
 import org.junit.Test;
+
+import anuled.dynamicstore.rdfmapper.URLScheme;
 
 public class TestURLScheme {
 	@Test

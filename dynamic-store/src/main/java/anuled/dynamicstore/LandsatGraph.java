@@ -17,8 +17,12 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.RDF;
 
+import anuled.dynamicstore.backend.Cell;
 import anuled.dynamicstore.backend.HDF5Dataset;
-import anuled.dynamicstore.backend.HDF5Dataset.Observation;
+import anuled.dynamicstore.backend.Observation;
+import anuled.dynamicstore.backend.PixelObservation;
+import anuled.dynamicstore.backend.TileObservation;
+import anuled.dynamicstore.rdfmapper.URLScheme;
 import anuled.vocabulary.Geo;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
@@ -73,7 +77,7 @@ public final class LandsatGraph extends GraphBase {
 
 	/** Convert a pixel into a WKT polygon */
 
-	private static String observationToPolyWKT(HDF5Dataset.Observation obs) {
+	private static String observationToPolyWKT(Observation obs) {
 		// Converts [[0, 1], [1, 2], ...] to '0 1, 1 2, ...'
 		String innerString = obs.getCell().getBounds().stream()
 				.map(p -> p.get(0) + " " + p.get(1))
@@ -87,7 +91,7 @@ public final class LandsatGraph extends GraphBase {
 	 */
 	private Stream<Triple> observationToTriples(Observation obs) {
 		Model pxModel = ModelFactory.createDefaultModel();
-		HDF5Dataset.Cell cell = obs.getCell();
+		Cell cell = obs.getCell();
 		GregorianCalendar obsTimestamp = GregorianCalendar
 				.from(cell.getDataset().getTimestamp().toZonedDateTime());
 
@@ -110,12 +114,12 @@ public final class LandsatGraph extends GraphBase {
 				.addLiteral(LED.dggsLevelPixel, obs.getPixelLevel())
 				.addLiteral(LED.etmBand, obs.getBand());
 
-		if (obs instanceof HDF5Dataset.PixelObservation) {
-			HDF5Dataset.PixelObservation pixelObs = (HDF5Dataset.PixelObservation) obs;
+		if (obs instanceof PixelObservation) {
+			PixelObservation pixelObs = (PixelObservation) obs;
 			res.addProperty(RDF.type, LED.Pixel).addProperty(LED.value,
 					pxModel.createTypedLiteral(pixelObs.getPixel()));
-		} else if (obs instanceof HDF5Dataset.TileObservation) {
-			HDF5Dataset.TileObservation tileObs = (HDF5Dataset.TileObservation) obs;
+		} else if (obs instanceof TileObservation) {
+			TileObservation tileObs = (TileObservation) obs;
 			short invalidValue = tileObs.getCell().getInvalidValue();
 			BufferedImage tileImage = Util.arrayToImage(tileObs.getTile(),
 					invalidValue);
@@ -150,17 +154,30 @@ public final class LandsatGraph extends GraphBase {
 	 */
 	@Override
 	protected ExtendedIterator<Triple> graphBaseFind(Triple trip) {
+		// Get metadata first
 		Statement stmt = dataCubeMeta.asStatement(trip);
 		StmtIterator metaStmts = dataCubeMeta.listStatements(stmt.getSubject(),
 				stmt.getPredicate(), stmt.getObject());
-
-		// TODO: Need to be smarter about how we respond to triple queries. The
-		// graph has already been flattened so that there's only a small set of
-		// predicates and a single "type" of subject, so it should be relatively
-		// easy to answer queries which only have NULL in one or two parts of
-		// the triple. For some good examples, see
-		// https://www.anutechlauncher.net/projects/linked-earth-observations/wiki/Dynamic_RDF_generation
 		ExtendedIterator<Triple> rv = metaStmts.mapWith(FrontsTriple::asTriple);
+
+		// For good examples of optimisation opportunities, see:
+		// https://www.anutechlauncher.net/projects/linked-earth-observations/wiki/Dynamic_RDF_generation
+/*		Node subj = trip.getMatchSubject(), pred = trip.getMatchPredicate(),
+				obj = trip.getMatchObject();
+		if (subj != null) {
+			// If the subject is a URI, we can try to parse it to figure out
+			// which observation it represents; if not, we have nothing to
+			// return
+			if (subj.isURI()) {
+				String toParse = subj.getURI();
+				// TODO: Need both parser and new object hierarchy to be
+				// implemented before I do anything substantial here
+			}
+		} else if (pred != null && obj != null) {
+			// TODO: Can handle predicates like rdf:type here
+		} else {
+			// TODO
+		}*/
 		rv = rv.andThen(pixelStream().filter(trip::matches).iterator());
 		return rv;
 	}

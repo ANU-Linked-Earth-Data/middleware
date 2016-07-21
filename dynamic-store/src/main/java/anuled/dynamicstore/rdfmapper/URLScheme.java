@@ -1,4 +1,4 @@
-package anuled.dynamicstore;
+package anuled.dynamicstore.rdfmapper;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -6,7 +6,8 @@ import java.time.ZonedDateTime;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import anuled.dynamicstore.backend.HDF5Dataset;
+import anuled.dynamicstore.backend.Cell;
+import anuled.dynamicstore.backend.Observation;
 
 /**
  * Code for formatting and parsing using our observation URL scheme.
@@ -26,11 +27,11 @@ public class URLScheme {
 	 * Get the URL corresponding to a specific observation (cell + band +
 	 * resolution) in the dataset.
 	 */
-	public static String observationURL(HDF5Dataset.Observation obs) {
+	public static String observationURL(Observation obs) {
 		String rv = DATA_PREFIX + "observation";
 
 		// Add date/time
-		HDF5Dataset.Cell cell = obs.getCell();
+		Cell cell = obs.getCell();
 		OffsetDateTime dt = cell.getDataset().getTimestamp();
 		rv += String.format("/%04d/%02d/%02d/%02d/%02d/%02d", dt.getYear(),
 				dt.getMonthValue(), dt.getDayOfMonth(), dt.getHour(),
