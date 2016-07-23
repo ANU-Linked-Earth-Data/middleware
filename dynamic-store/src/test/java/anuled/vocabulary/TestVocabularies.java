@@ -1,4 +1,4 @@
-package anuled.dynamicstore;
+package anuled.vocabulary;
 
 import org.junit.Test;
 

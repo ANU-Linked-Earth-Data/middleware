@@ -23,7 +23,7 @@ public class HDF5Dataset {
 	/* Dataset-wide metadata */
 	private OffsetDateTime obsDate;
 	private String prodCode, satID, sensorID;
-	
+
 	protected IHDF5Reader getReader() {
 		return fp;
 	}
@@ -100,18 +100,17 @@ public class HDF5Dataset {
 	 *            occur, or null if all levels desired.
 	 * @param cellID
 	 *            DGGS ID for the cell (e.g. R78523).
+	 * @throws Exception
 	 */
 	public Stream<Cell> cells(Integer cellLevel, String cellID) {
-		if (cellLevel != null && cellID != null
-				&& cellID.length() != cellLevel) {
-			throw new RuntimeException("Cell level and ID must be consistent");
-		}
-
 		// If a cell ID was specified, use it
 		if (cellID != null) {
-			Cell theCell = cellsByID.get(cellID);
-			if (theCell != null) {
-				return Stream.of(theCell);
+			// Having the wrong cell level makes us return nothing
+			if (cellLevel == cellID.length()) {
+				Cell theCell = cellsByID.get(cellID);
+				if (theCell != null) {
+					return Stream.of(theCell);
+				}
 			}
 			return Stream.of();
 		}

@@ -1,4 +1,4 @@
-package anuled.dynamicstore;
+package anuled.dynamicstore.util;
 
 import static org.junit.Assert.*;
 
@@ -10,6 +10,8 @@ import java.util.Base64;
 import javax.imageio.ImageIO;
 
 import org.junit.Test;
+
+import anuled.dynamicstore.util.ImageUtil;
 
 public class TestUtil {
 	public static short[][] TEST_ARRAY = new short[][] {
@@ -24,7 +26,7 @@ public class TestUtil {
 
 	@Test
 	public void testMakeImage() {
-		BufferedImage im = Util.arrayToImage(TEST_ARRAY, INVALID_VALUE);
+		BufferedImage im = ImageUtil.arrayToImage(TEST_ARRAY, INVALID_VALUE);
 		assertEquals(7, im.getHeight());
 		assertEquals(8, im.getWidth());
 		// value at col 3, row 1 (i.e. (x, y) = (3, 1)) should be 0
@@ -40,8 +42,8 @@ public class TestUtil {
 	@Test
 	public void testImageToPNG() throws IOException {
 		// Tries to convert the image to a data URL, then reconstruct it
-		BufferedImage im = Util.arrayToImage(TEST_ARRAY, INVALID_VALUE);
-		String b64 = Util.imageToPNGURL(im);
+		BufferedImage im = ImageUtil.arrayToImage(TEST_ARRAY, INVALID_VALUE);
+		String b64 = ImageUtil.imageToPNGURL(im);
 		String prefix = "data:image/png;base64,";
 		assertTrue(b64.startsWith(prefix));
 		String suffix = b64.substring(prefix.length());

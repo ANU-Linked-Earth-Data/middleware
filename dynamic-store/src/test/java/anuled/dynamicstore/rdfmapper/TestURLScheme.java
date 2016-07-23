@@ -25,7 +25,7 @@ public class TestURLScheme {
 
 		String passCase = "https://anulinkedearth.org/rdf/2012/03/02/23/13/42/cell/R91/"
 				+ "levelSquare-3/levelPixel-4/band-5";
-		URLScheme.ObservationMeta meta = URLScheme
+		ObservationMeta meta = URLScheme
 				.parseObservationURL(passCase);
 		assertEquals("R91", meta.cell);
 		assertEquals(3, meta.levelSquare);

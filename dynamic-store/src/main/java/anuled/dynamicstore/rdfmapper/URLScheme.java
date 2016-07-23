@@ -52,12 +52,6 @@ public class URLScheme {
 		}
 	}
 
-	public static class ObservationMeta {
-		int levelSquare, levelPixel, band;
-		ZonedDateTime timestamp;
-		String cell;
-	}
-
 	public static ObservationMeta parseObservationURL(String url) {
 		if (!url.startsWith(DATA_PREFIX)) {
 			throw new ParseException("URL '" + url + "' does not start with '"

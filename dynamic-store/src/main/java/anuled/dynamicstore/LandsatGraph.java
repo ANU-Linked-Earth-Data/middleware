@@ -23,6 +23,7 @@ import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.backend.PixelObservation;
 import anuled.dynamicstore.backend.TileObservation;
 import anuled.dynamicstore.rdfmapper.URLScheme;
+import anuled.dynamicstore.util.ImageUtil;
 import anuled.vocabulary.Geo;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
@@ -76,7 +77,6 @@ public final class LandsatGraph extends GraphBase {
 	}
 
 	/** Convert a pixel into a WKT polygon */
-
 	private static String observationToPolyWKT(Observation obs) {
 		// Converts [[0, 1], [1, 2], ...] to '0 1, 1 2, ...'
 		String innerString = obs.getCell().getBounds().stream()
@@ -121,9 +121,9 @@ public final class LandsatGraph extends GraphBase {
 		} else if (obs instanceof TileObservation) {
 			TileObservation tileObs = (TileObservation) obs;
 			short invalidValue = tileObs.getCell().getInvalidValue();
-			BufferedImage tileImage = Util.arrayToImage(tileObs.getTile(),
+			BufferedImage tileImage = ImageUtil.arrayToImage(tileObs.getTile(),
 					invalidValue);
-			String dataURI = Util.imageToPNGURL(tileImage);
+			String dataURI = ImageUtil.imageToPNGURL(tileImage);
 			res.addProperty(RDF.type, LED.GridSquare).addProperty(LED.imageData,
 					pxModel.createResource(dataURI));
 		} else {

@@ -1,4 +1,4 @@
-package anuled.dynamicstore;
+package anuled.dynamicstore.util;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -8,7 +8,7 @@ import java.util.Base64;
 import javax.imageio.ImageIO;
 
 /** Generic utilities that don't fit in anywhere else */
-public class Util {
+public class ImageUtil {
 	public static BufferedImage arrayToImage(short[][] values, short invalidValue) {
 		int width = values[0].length, height = values.length;
 		// TODO: should figure out how to get a grayscale image with alpha
