@@ -20,4 +20,5 @@ public class DGGSLevelPixelProperty implements ObservationProperty {
 		return Stream.of(JenaUtil.createLiteralResource(obs.getPixelLevel()));
 	}
 
+	// TODO: Figure out how to filter by levelPixel efficiently
 }

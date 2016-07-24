@@ -14,7 +14,8 @@ import anuled.dynamicstore.backend.Observation;
  */
 public class URLScheme {
 	// eventually this will have to be configurable
-	public static String DATA_PREFIX = "https://anulinkedearth.org/rdf/";
+	public static String DATA_PREFIX = "https://anulinkedearth.org/rdf/observation/";
+	
 	public static Pattern SUFFIX_PATTERN = Pattern
 			.compile("^(?<year>\\d{4})/(?<month>\\d{2})/(?<day>\\d{2})"
 					+ "/(?<hour>\\d{2})/(?<minute>\\d{2})/(?<second>\\d{2})"
@@ -28,12 +29,12 @@ public class URLScheme {
 	 * resolution) in the dataset.
 	 */
 	public static String observationURL(Observation obs) {
-		String rv = DATA_PREFIX + "observation";
+		String rv = DATA_PREFIX;
 
 		// Add date/time
 		Cell cell = obs.getCell();
 		OffsetDateTime dt = cell.getDataset().getTimestamp();
-		rv += String.format("/%04d/%02d/%02d/%02d/%02d/%02d", dt.getYear(),
+		rv += String.format("%04d/%02d/%02d/%02d/%02d/%02d", dt.getYear(),
 				dt.getMonthValue(), dt.getDayOfMonth(), dt.getHour(),
 				dt.getMinute(), dt.getSecond());
 

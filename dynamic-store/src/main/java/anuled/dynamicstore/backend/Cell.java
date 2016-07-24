@@ -236,7 +236,7 @@ public class Cell {
 	@Override
 	public boolean equals(Object other) {
 		if (other instanceof Cell) {
-			return ((Cell) other).getDGGSIdent() == dggsIdent;
+			return ((Cell) other).getDGGSIdent().equals(getDGGSIdent());
 		}
 		return false;
 	}

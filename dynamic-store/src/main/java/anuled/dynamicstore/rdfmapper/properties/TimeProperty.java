@@ -16,13 +16,15 @@ public class TimeProperty implements ObservationProperty {
 	public String getURI() {
 		return LED.time.getURI();
 	}
+	
+	private static GregorianCalendar getTimestamp(Observation obs) {
+		Cell cell = obs.getCell();
+		return GregorianCalendar
+				.from(cell.getDataset().getTimestamp().toZonedDateTime());
+	}
 
 	@Override
 	public Stream<Resource> valuesForObservation(Observation obs) {
-		Cell cell = obs.getCell();
-		GregorianCalendar obsTimestamp = GregorianCalendar
-				.from(cell.getDataset().getTimestamp().toZonedDateTime());
-		return Stream.of(JenaUtil.createLiteralResource(obsTimestamp));
+		return Stream.of(JenaUtil.createLiteralResource(getTimestamp(obs)));
 	}
-
 }

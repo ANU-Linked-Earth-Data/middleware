@@ -21,4 +21,14 @@ public final class PixelObservation extends Observation {
 	public double getResolution() {
 		return 1.0 / getCell().getDegreesSpanned();
 	}
+	
+	@Override
+	public boolean equals(Object other) {
+		return super.equals(other) && (other instanceof PixelObservation);
+	}
+
+	@Override
+	public String toString() {
+		return super.toString() + ", type=pixel";
+	}
 }

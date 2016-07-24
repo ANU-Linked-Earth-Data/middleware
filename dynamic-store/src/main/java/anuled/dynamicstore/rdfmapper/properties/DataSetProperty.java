@@ -5,19 +5,19 @@ import java.util.stream.Stream;
 import org.apache.jena.rdf.model.Resource;
 
 import anuled.dynamicstore.backend.Observation;
+import anuled.vocabulary.QB;
 
 public class DataSetProperty implements ObservationProperty {
 
 	@Override
 	public String getURI() {
-		// TODO Auto-generated method stub
-		return null;
+		return QB.dataSet.getURI();
 	}
 
 	@Override
 	public Stream<Resource> valuesForObservation(Observation obs) {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO Get the real dataset URI
+		return Stream.of();
 	}
 
 }

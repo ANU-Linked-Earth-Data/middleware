@@ -41,4 +41,14 @@ public final class TileObservation extends Observation {
 	public double getResolution() {
 		return getCell().tileSize() / getCell().getDegreesSpanned();
 	}
+	
+	@Override
+	public boolean equals(Object other) {
+		return super.equals(other) && (other instanceof TileObservation);
+	}
+
+	@Override
+	public String toString() {
+		return super.toString() + ", type=tile";
+	}
 }

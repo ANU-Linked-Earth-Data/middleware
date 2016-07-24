@@ -43,4 +43,20 @@ public abstract class Observation {
 	public abstract int getPixelLevel();
 
 	public abstract double getResolution();
+
+	@Override
+	public boolean equals(Object other) {
+		if (!(other instanceof Observation)) {
+			return false;
+		}
+		Observation obsOther = (Observation) other;
+		return getCell().equals(obsOther.getCell())
+				&& getBand() == obsOther.getBand();
+	}
+
+	@Override
+	public String toString() {
+		return "Observation: band=" + getBand() + ", cell="
+				+ getCell().getDGGSIdent();
+	}
 }

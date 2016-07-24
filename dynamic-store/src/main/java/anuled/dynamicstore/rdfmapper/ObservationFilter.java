@@ -2,6 +2,8 @@ package anuled.dynamicstore.rdfmapper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -85,6 +87,12 @@ public class ObservationFilter {
 		constrainType(TileObservation.class);
 	}
 
+	public void constrainNaively(ObservationProperty prop, Resource value) {
+		// Optimisation opportunity: check for conflicting values (assuming that
+		// the constraints are AND rather than OR)
+		naiveConstraints.add(Pair.of(prop, value));
+	}
+
 	public void constrainImpossibly() {
 		empty = true;
 	}
@@ -112,9 +120,33 @@ public class ObservationFilter {
 		}
 	}
 
-	public void constrainNaively(ObservationProperty prop, Resource value) {
-		// Optimisation opportunity: check for conflicting values (assuming that
-		// the constraints are AND rather than OR)
-		naiveConstraints.add(Pair.of(prop, value));
+	public static Observation retrieveFromMeta(ObservationMeta meta,
+			HDF5Dataset dataset) {
+		ObservationFilter filter = new ObservationFilter(dataset);
+		filter.constrainBandNum(meta.band);
+		filter.constrainCellID(meta.cell);
+		filter.constrainLevel(meta.levelSquare);
+		if (meta.levelPixel == meta.levelSquare) {
+			filter.constrainToPixel();
+		} else {
+			filter.constrainToTile();
+		}
+		Stream<Observation> results = filter.execute();
+		Optional<Observation> maybeFst = results.findFirst();
+		Observation fst;
+		try {
+			fst = maybeFst.get();
+		} catch (NoSuchElementException e) {
+			return null;
+		}
+
+		// We know that band number, cell ID and levelSquare match. Just need to
+		// check that levelPixel and datetime match
+		boolean tsEqual = fst.getCell().getDataset().getTimestamp()
+				.toZonedDateTime().equals(meta.timestamp);
+		if (fst.getPixelLevel() == meta.levelPixel && tsEqual) {
+			return fst;
+		}
+		return null;
 	}
 }

@@ -24,11 +24,13 @@ public class BandProperty implements ObservationProperty {
 
 	@Override
 	public void applyToFilter(ObservationFilter filter, Resource value) {
+		int band;
 		try {
-			int band = value.asLiteral().getInt();
-			filter.constrainBandNum(band);
+			band = value.asLiteral().getInt();
 		} catch (DatatypeFormatException|LiteralRequiredException e) {
 			filter.constrainImpossibly();
+			return;
 		}
+		filter.constrainBandNum(band);
 	}
 }
