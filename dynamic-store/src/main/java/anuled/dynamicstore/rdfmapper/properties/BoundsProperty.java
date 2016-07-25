@@ -19,7 +19,10 @@ public class BoundsProperty implements ObservationProperty {
 		// Converts [[0, 1], [1, 2], ...] to '0 1, 1 2, ...'
 		String innerString = obs.getCell().getBounds().stream()
 				.map(p -> p.get(0) + " " + p.get(1))
-				.reduce("", (l, r) -> l + ", " + r);
+				.reduce("", (l, r) -> {
+					String mid = l.length() > 0 && r.length() > 0 ? ", " : "";
+					return l + mid + r;
+				});
 		return String.format("POLYGON((%s))", innerString);
 	}
 

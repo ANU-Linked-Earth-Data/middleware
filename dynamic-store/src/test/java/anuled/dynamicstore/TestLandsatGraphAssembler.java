@@ -12,6 +12,7 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import anuled.vocabulary.LED;
@@ -28,8 +29,8 @@ public class TestLandsatGraphAssembler {
 	public static void tearDownAfterClass() throws Exception {
 		td.dispose();
 	}
-
-	@Test(timeout=60000)
+	
+	@Ignore @Test(timeout=60000)
 	public void testAssembler() throws IOException {
 		LandsatGraphAssembler.init();
 		Model spec = ModelFactory.createDefaultModel();

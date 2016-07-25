@@ -16,6 +16,7 @@ import org.apache.jena.util.iterator.ExtendedIterator;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestLandsatGraph {
@@ -53,7 +54,7 @@ public class TestLandsatGraph {
 		model = new ModelCom(graph);
 	}
 
-	@Test(timeout=30000)
+	@Ignore @Test(timeout=30000)
 	public void testGraphBaseFindTriple() {
 		Triple pattern = Triple.createMatch(null, null, null);
 		// Just try getting back the iterator (don't bother with anything else
@@ -63,7 +64,7 @@ public class TestLandsatGraph {
 		assertTrue(trips.toList().size() > 100);
 	}
 
-	@Test(timeout=30000)
+	@Ignore @Test(timeout=30000)
 	public void testQuery() {
 		ResultSet results = runSelect("SELECT * WHERE {?s ?p ?o.} LIMIT 10");
 		// Make sure a query for everything //actually executes//.
