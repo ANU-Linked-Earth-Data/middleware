@@ -36,6 +36,8 @@ public class ObservationFilter {
 	}
 
 	public void constrainProperty(String propURI, Node expectedValue) {
+		// Expected value must be URL/literal/blank
+		assert expectedValue.isConcrete();
 		ObservationProperty prop = PropertyIndex.getProperty(propURI);
 		if (prop == null) {
 			constrainImpossibly();

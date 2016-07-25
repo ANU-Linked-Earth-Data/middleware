@@ -65,6 +65,7 @@ public final class LandsatGraph extends GraphBase {
 			throw new RuntimeException(
 					"Invalid configuration: need a qb:DataSet");
 		}
+		iter.next(); // just to get rid of one
 		if (iter.hasNext()) {
 			throw new RuntimeException(
 					"Invalid configuration: can't have more than one qb:DataSet");
@@ -76,8 +77,9 @@ public final class LandsatGraph extends GraphBase {
 	 */
 	private static boolean objMatches(Triple trip, Node obj) {
 		Object tObj = trip.getObject();
-		if (tObj == null || obj == null) {
-			return tObj == obj;
+		if (obj == null) {
+			// obj == null means "triple's object can be anything you want"
+			return true;
 		}
 		return tObj.equals(obj);
 	}
@@ -95,7 +97,8 @@ public final class LandsatGraph extends GraphBase {
 	 *            desired)
 	 * @return stream of triples for the observation
 	 */
-	private Stream<Triple> mapToTriples(Observation obs, Node pred, Node obj) {
+	protected Stream<Triple> mapToTriples(Observation obs, Node pred,
+			Node obj) {
 		String obsURL = URLScheme.observationURL(obs);
 		Node obsNode = JenaUtil.createURINode(obsURL);
 		if (pred != null) {
@@ -104,16 +107,19 @@ public final class LandsatGraph extends GraphBase {
 				ObservationProperty prop = PropertyIndex
 						.getProperty(pred.getURI());
 				Stream<Node> vals = prop.valuesForObservation(obs);
-				vals.map(val -> new Triple(obsNode, pred, val))
+				return vals.map(val -> new Triple(obsNode, pred, val))
 						.filter(t -> objMatches(t, obj));
 			}
 			return Stream.of();
 		}
 
-		// Return triples associated with every predicate :(
+		// Return triples associated with every predicate
 		return PropertyIndex.propertyURIs().stream().flatMap(propURI -> {
 			Node propNode = JenaUtil.createURINode(propURI);
-			return PropertyIndex.getProperty(propURI).valuesForObservation(obs)
+			// XXX: Something is going wrong on the next line
+			ObservationProperty prop = PropertyIndex.getProperty(propURI);
+			Stream<Node> propVals = prop.valuesForObservation(obs);
+			return propVals
 					.map(objNode -> new Triple(obsNode, propNode, objNode));
 		}).filter(t -> objMatches(t, obj));
 	}
@@ -125,7 +131,7 @@ public final class LandsatGraph extends GraphBase {
 	 *            URI to parse
 	 * @return the corresponding observation, if it exists; otherwise null
 	 */
-	private Observation obsForURI(String toParse) {
+	protected Observation obsForURI(String toParse) {
 		ObservationMeta meta;
 		try {
 			meta = URLScheme.parseObservationURL(toParse);
@@ -146,7 +152,7 @@ public final class LandsatGraph extends GraphBase {
 	 * Fetch all observations matching a <code>(subj, pred, obj)</code> filter
 	 * passed to graphBaseFind().
 	 */
-	private Stream<Observation> matchingObservations(Node subj, Node pred,
+	protected Stream<Observation> matchingObservations(Node subj, Node pred,
 			Node obj) {
 		if (subj != null) {
 			// If the subject is a URI, we can try to parse it to figure out
@@ -199,8 +205,9 @@ public final class LandsatGraph extends GraphBase {
 				obj = trip.getMatchObject();
 		Stream<Observation> observations = matchingObservations(subj, pred,
 				obj);
-		rv = rv.andThen(observations
-				.flatMap(obs -> mapToTriples(obs, pred, obj)).iterator());
+		Stream<Triple> lsTrips = observations
+				.flatMap(obs -> mapToTriples(obs, pred, obj));
+		rv = rv.andThen(lsTrips.iterator());
 		return rv;
 	}
 
