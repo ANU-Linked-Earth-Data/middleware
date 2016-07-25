@@ -2,21 +2,21 @@ package anuled.dynamicstore.util;
 
 import org.apache.jena.datatypes.BaseDatatype;
 import org.apache.jena.datatypes.RDFDatatype;
-import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.rdf.model.ResourceFactory;
 
 public class JenaUtil {
-	public static Resource createLiteralResource(Object value) {
-		return ResourceFactory.createTypedLiteral(value).asResource();
+	public static Node createLiteralNode(Object value) {
+		return ResourceFactory.createTypedLiteral(value).asNode();
 	}
 
-	public static Resource createLiteralResource(String value, String typeURI) {
+	public static Node createLiteralNode(String value, String typeURI) {
 		RDFDatatype type = new BaseDatatype(typeURI);
-		return ResourceFactory.createTypedLiteral(value, type)
-				.asResource();
+		return NodeFactory.createLiteral(value, type);
 	}
 
-	public static Resource createURIResource(String URI) {
-		return ResourceFactory.createResource(URI);
+	public static Node createURINode(String uri) {
+		return NodeFactory.createURI(uri);
 	}
 }

@@ -3,7 +3,7 @@ package anuled.dynamicstore.rdfmapper.properties;
 import java.util.GregorianCalendar;
 import java.util.stream.Stream;
 
-import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.graph.Node;
 
 import anuled.dynamicstore.backend.Cell;
 import anuled.dynamicstore.backend.Observation;
@@ -24,7 +24,7 @@ public class TimeProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Resource> valuesForObservation(Observation obs) {
-		return Stream.of(JenaUtil.createLiteralResource(getTimestamp(obs)));
+	public Stream<Node> valuesForObservation(Observation obs) {
+		return Stream.of(JenaUtil.createLiteralNode(getTimestamp(obs)));
 	}
 }

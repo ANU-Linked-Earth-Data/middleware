@@ -46,6 +46,11 @@ public final class TileObservation extends Observation {
 	public boolean equals(Object other) {
 		return super.equals(other) && (other instanceof TileObservation);
 	}
+	
+	@Override
+	public int hashCode() {
+		return super.hashCode() ^ TileObservation.class.hashCode();
+	}
 
 	@Override
 	public String toString() {

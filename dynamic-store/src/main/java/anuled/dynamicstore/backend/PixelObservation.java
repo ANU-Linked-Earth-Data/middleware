@@ -26,6 +26,11 @@ public final class PixelObservation extends Observation {
 	public boolean equals(Object other) {
 		return super.equals(other) && (other instanceof PixelObservation);
 	}
+	
+	@Override
+	public int hashCode() {
+		return super.hashCode() ^ PixelObservation.class.hashCode();
+	}
 
 	@Override
 	public String toString() {

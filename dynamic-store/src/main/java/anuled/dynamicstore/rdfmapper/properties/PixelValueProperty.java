@@ -2,7 +2,7 @@ package anuled.dynamicstore.rdfmapper.properties;
 
 import java.util.stream.Stream;
 
-import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.graph.Node;
 
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.backend.PixelObservation;
@@ -17,11 +17,11 @@ public class PixelValueProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Resource> valuesForObservation(Observation obs) {
+	public Stream<Node> valuesForObservation(Observation obs) {
 		if (obs instanceof PixelObservation) {
 			PixelObservation pxObs = (PixelObservation) obs;
 			double px = pxObs.getPixel();
-			return Stream.of(JenaUtil.createLiteralResource(px));
+			return Stream.of(JenaUtil.createLiteralNode(px));
 		}
 		return Stream.of();
 	}

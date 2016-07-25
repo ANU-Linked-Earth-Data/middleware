@@ -7,9 +7,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.jena.rdf.model.Property;
-import org.apache.jena.rdf.model.Resource;
-
+import org.apache.jena.graph.Node;
 import anuled.dynamicstore.backend.Cell;
 import anuled.dynamicstore.backend.HDF5Dataset;
 import anuled.dynamicstore.backend.Observation;
@@ -30,15 +28,15 @@ public class ObservationFilter {
 	Class<?> reqClass = null;
 	// set empty = true when there are no matching observations
 	boolean empty = false;
-	List<Pair<ObservationProperty, Resource>> naiveConstraints = new ArrayList<>();
+	List<Pair<ObservationProperty, Node>> naiveConstraints = new ArrayList<>();
 	HDF5Dataset dataset;
 
 	public ObservationFilter(HDF5Dataset dataset) {
 		this.dataset = dataset;
 	}
 
-	public void constrainProperty(Property property, Resource expectedValue) {
-		ObservationProperty prop = PropertyIndex.getProperty(property.getURI());
+	public void constrainProperty(String propURI, Node expectedValue) {
+		ObservationProperty prop = PropertyIndex.getProperty(propURI);
 		if (prop == null) {
 			constrainImpossibly();
 		} else {
@@ -87,7 +85,7 @@ public class ObservationFilter {
 		constrainType(TileObservation.class);
 	}
 
-	public void constrainNaively(ObservationProperty prop, Resource value) {
+	public void constrainNaively(ObservationProperty prop, Node value) {
 		// Optimisation opportunity: check for conflicting values (assuming that
 		// the constraints are AND rather than OR)
 		naiveConstraints.add(Pair.of(prop, value));
@@ -105,10 +103,10 @@ public class ObservationFilter {
 			Stream<Observation> observations = cells
 					.flatMap(c -> c.observations(reqBandNum, reqClass))
 					.filter(o -> {
-						for (Pair<ObservationProperty, Resource> pair : naiveConstraints) {
+						for (Pair<ObservationProperty, Node> pair : naiveConstraints) {
 							ObservationProperty prop = pair.getLeft();
-							Resource expected = pair.getRight();
-							Stream<Resource> actual = prop
+							Node expected = pair.getRight();
+							Stream<Node> actual = prop
 									.valuesForObservation(o);
 							if (!actual.anyMatch(v -> expected.equals(v))) {
 								return false;

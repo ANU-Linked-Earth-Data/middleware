@@ -53,6 +53,11 @@ public abstract class Observation {
 		return getCell().equals(obsOther.getCell())
 				&& getBand() == obsOther.getBand();
 	}
+	
+	@Override
+	public int hashCode() {
+		return getBand() ^ getCell().hashCode();
+	}
 
 	@Override
 	public String toString() {

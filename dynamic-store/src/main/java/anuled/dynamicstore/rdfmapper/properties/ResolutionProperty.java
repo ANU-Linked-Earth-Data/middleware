@@ -2,7 +2,7 @@ package anuled.dynamicstore.rdfmapper.properties;
 
 import java.util.stream.Stream;
 
-import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.graph.Node;
 
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.util.JenaUtil;
@@ -15,8 +15,8 @@ public class ResolutionProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Resource> valuesForObservation(Observation obs) {
+	public Stream<Node> valuesForObservation(Observation obs) {
 		double res = obs.getResolution();
-		return Stream.of(JenaUtil.createLiteralResource(res));
+		return Stream.of(JenaUtil.createLiteralNode(res));
 	}
 }

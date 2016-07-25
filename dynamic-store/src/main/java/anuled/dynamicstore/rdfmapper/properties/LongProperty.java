@@ -2,7 +2,7 @@ package anuled.dynamicstore.rdfmapper.properties;
 
 import java.util.stream.Stream;
 
-import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.graph.Node;
 
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.util.JenaUtil;
@@ -15,7 +15,7 @@ public class LongProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Resource> valuesForObservation(Observation obs) {
-		return Stream.of(JenaUtil.createLiteralResource(obs.getCell().getLon()));
+	public Stream<Node> valuesForObservation(Observation obs) {
+		return Stream.of(JenaUtil.createLiteralNode(obs.getCell().getLon()));
 	}
 }

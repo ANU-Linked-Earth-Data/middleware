@@ -2,9 +2,10 @@ package anuled.dynamicstore.rdfmapper.properties;
 
 import java.util.stream.Stream;
 
-import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.graph.Node;
 
 import anuled.dynamicstore.backend.Observation;
+import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
 
 public class DataSetProperty implements ObservationProperty {
@@ -15,9 +16,9 @@ public class DataSetProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Resource> valuesForObservation(Observation obs) {
+	public Stream<Node> valuesForObservation(Observation obs) {
 		// TODO Get the real dataset URI
-		return Stream.of();
+		return Stream.of(LED.LandsatGraph.asNode());
 	}
 
 }

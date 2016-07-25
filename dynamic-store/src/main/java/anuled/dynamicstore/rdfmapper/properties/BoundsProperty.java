@@ -2,7 +2,7 @@ package anuled.dynamicstore.rdfmapper.properties;
 
 import java.util.stream.Stream;
 
-import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.graph.Node;
 
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.util.JenaUtil;
@@ -24,8 +24,8 @@ public class BoundsProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Resource> valuesForObservation(Observation obs) {
-		Resource rv = JenaUtil.createLiteralResource(observationToPolyWKT(obs),
+	public Stream<Node> valuesForObservation(Observation obs) {
+		Node rv = JenaUtil.createLiteralNode(observationToPolyWKT(obs),
 				"http://www.opengis.net/ont/geosparql#wktLiteral");
 		return Stream.of(rv);
 	}

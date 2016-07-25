@@ -1,31 +1,28 @@
 package anuled.dynamicstore;
 
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.GregorianCalendar;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.FrontsTriple;
+import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.graph.impl.GraphBase;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.RDF;
 
-import anuled.dynamicstore.backend.Cell;
 import anuled.dynamicstore.backend.HDF5Dataset;
 import anuled.dynamicstore.backend.Observation;
-import anuled.dynamicstore.backend.PixelObservation;
-import anuled.dynamicstore.backend.TileObservation;
+import anuled.dynamicstore.rdfmapper.ObservationFilter;
+import anuled.dynamicstore.rdfmapper.ObservationMeta;
 import anuled.dynamicstore.rdfmapper.URLScheme;
-import anuled.dynamicstore.util.ImageUtil;
-import anuled.vocabulary.Geo;
-import anuled.vocabulary.LED;
+import anuled.dynamicstore.rdfmapper.properties.ObservationProperty;
+import anuled.dynamicstore.rdfmapper.properties.PropertyIndex;
+import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.QB;
 
 /**
@@ -41,7 +38,6 @@ public final class LandsatGraph extends GraphBase {
 	 */
 	private Model dataCubeMeta = ModelFactory.createDefaultModel();
 	private HDF5Dataset reader;
-	private Resource datasetResource;
 
 	public LandsatGraph(String h5Filename) {
 		super();
@@ -69,81 +65,118 @@ public final class LandsatGraph extends GraphBase {
 			throw new RuntimeException(
 					"Invalid configuration: need a qb:DataSet");
 		}
-		datasetResource = iter.nextStatement().getSubject();
 		if (iter.hasNext()) {
 			throw new RuntimeException(
 					"Invalid configuration: can't have more than one qb:DataSet");
 		}
 	}
 
-	/** Convert a pixel into a WKT polygon */
-	private static String observationToPolyWKT(Observation obs) {
-		// Converts [[0, 1], [1, 2], ...] to '0 1, 1 2, ...'
-		String innerString = obs.getCell().getBounds().stream()
-				.map(p -> p.get(0) + " " + p.get(1))
-				.reduce("", (l, r) -> l + ", " + r);
-		return String.format("POLYGON((%s))", innerString);
+	/**
+	 * Make sure that the triple is consistent with the desired object.
+	 */
+	private static boolean objMatches(Triple trip, Node obj) {
+		Object tObj = trip.getObject();
+		if (tObj == null || obj == null) {
+			return tObj == obj;
+		}
+		return tObj.equals(obj);
 	}
 
 	/**
-	 * Convert a HDF5Dataset.Observation to a list of triples; will use pixel
-	 * data if usePixel is specified, otherwise tile data.
+	 * Retrieve the triples associated with an observation.
+	 * 
+	 * @param obs
+	 *            the observation in question
+	 * @param pred
+	 *            a node representing the desired predicate (or null, if none
+	 *            desired)
+	 * @param obj
+	 *            a node representing the desired object value (or null, if none
+	 *            desired)
+	 * @return stream of triples for the observation
 	 */
-	private Stream<Triple> observationToTriples(Observation obs) {
-		Model pxModel = ModelFactory.createDefaultModel();
-		Cell cell = obs.getCell();
-		GregorianCalendar obsTimestamp = GregorianCalendar
-				.from(cell.getDataset().getTimestamp().toZonedDateTime());
-
-		String url = URLScheme.observationURL(obs);
-		Resource res = pxModel.createResource(url)
-				.addProperty(RDF.type, QB.Observation)
-				.addProperty(QB.dataSet, datasetResource)
-				.addLiteral(LED.time, obsTimestamp)
-				.addLiteral(LED.resolution, 0.0)
-				.addProperty(LED.bounds,
-						pxModel.createTypedLiteral(observationToPolyWKT(obs),
-								"http://www.opengis.net/ont/geosparql#wktLiteral"))
-				.addLiteral(Geo.lat, cell.getLat())
-				.addLiteral(Geo.long_, cell.getLon())
-				.addProperty(LED.resolution,
-						pxModel.createTypedLiteral(obs.getResolution(),
-								LED.pixelsPerDegree.getURI()))
-				.addLiteral(LED.dggsCell, obs.getCell().getDGGSIdent())
-				.addLiteral(LED.dggsLevelSquare, obs.getCellLevel())
-				.addLiteral(LED.dggsLevelPixel, obs.getPixelLevel())
-				.addLiteral(LED.etmBand, obs.getBand());
-
-		if (obs instanceof PixelObservation) {
-			PixelObservation pixelObs = (PixelObservation) obs;
-			res.addProperty(RDF.type, LED.Pixel).addProperty(LED.value,
-					pxModel.createTypedLiteral(pixelObs.getPixel()));
-		} else if (obs instanceof TileObservation) {
-			TileObservation tileObs = (TileObservation) obs;
-			short invalidValue = tileObs.getCell().getInvalidValue();
-			BufferedImage tileImage = ImageUtil.arrayToImage(tileObs.getTile(),
-					invalidValue);
-			String dataURI = ImageUtil.imageToPNGURL(tileImage);
-			res.addProperty(RDF.type, LED.GridSquare).addProperty(LED.imageData,
-					pxModel.createResource(dataURI));
-		} else {
-			throw new RuntimeException(
-					"All observations should be either tiles or pixels, but obs is neither");
+	private Stream<Triple> mapToTriples(Observation obs, Node pred, Node obj) {
+		String obsURL = URLScheme.observationURL(obs);
+		Node obsNode = JenaUtil.createURINode(obsURL);
+		if (pred != null) {
+			// We only fetch the matching predicate
+			if (pred.isURI()) {
+				ObservationProperty prop = PropertyIndex
+						.getProperty(pred.getURI());
+				Stream<Node> vals = prop.valuesForObservation(obs);
+				vals.map(val -> new Triple(obsNode, pred, val))
+						.filter(t -> objMatches(t, obj));
+			}
+			return Stream.of();
 		}
 
-		// It would be more efficient to convert a Model to a Stream directly,
-		// but I'll leave that for future optimisation
-		return pxModel.listStatements().toList().stream()
-				.map(FrontsTriple::asTriple);
+		// Return triples associated with every predicate :(
+		return PropertyIndex.propertyURIs().stream().flatMap(propURI -> {
+			Node propNode = JenaUtil.createURINode(propURI);
+			return PropertyIndex.getProperty(propURI).valuesForObservation(obs)
+					.map(objNode -> new Triple(obsNode, propNode, objNode));
+		}).filter(t -> objMatches(t, obj));
 	}
 
 	/**
-	 * Iterate over all pixels in the attached Landsat tile, returning each as
-	 * an RDF graph.
+	 * Get an observation from a URI
+	 * 
+	 * @param toParse
+	 *            URI to parse
+	 * @return the corresponding observation, if it exists; otherwise null
 	 */
-	private Stream<Triple> pixelStream() {
-		return reader.cells(null, null).flatMap(c -> c.observations(null, null))
-				.flatMap(this::observationToTriples);
+	private Observation obsForURI(String toParse) {
+		ObservationMeta meta;
+		try {
+			meta = URLScheme.parseObservationURL(toParse);
+		} catch (URLScheme.ParseException e) {
+			// Invalid URI
+			return null;
+		}
+		// Might be null if it doesn't exist in the dataset
+		return ObservationFilter.retrieveFromMeta(meta, reader);
+	}
+
+	private Stream<Observation> getAllObservations() {
+		return reader.cells(null, null)
+				.flatMap(c -> c.observations(null, null));
+	}
+
+	/**
+	 * Fetch all observations matching a <code>(subj, pred, obj)</code> filter
+	 * passed to graphBaseFind().
+	 */
+	private Stream<Observation> matchingObservations(Node subj, Node pred,
+			Node obj) {
+		if (subj != null) {
+			// If the subject is a URI, we can try to parse it to figure out
+			// which observation it represents; if not, we have nothing to
+			// return
+			if (subj.isURI()) {
+				Observation obs = obsForURI(subj.getURI());
+				if (obs != null) {
+					return Stream.of(obs);
+				}
+			}
+		} else if (pred != null) {
+			if (pred.isURI()) {
+				ObservationProperty prop = PropertyIndex
+						.getProperty(pred.getURI());
+				if (prop != null) {
+					if (obj != null) {
+						ObservationFilter filter = new ObservationFilter(
+								reader);
+						filter.constrainProperty(prop.getURI(), obj);
+						return filter.execute();
+					} else {
+						return getAllObservations();
+					}
+				}
+			}
+		} else {
+			return getAllObservations();
+		}
+		return Stream.of();
 	}
 
 	/**
@@ -162,23 +195,12 @@ public final class LandsatGraph extends GraphBase {
 
 		// For good examples of optimisation opportunities, see:
 		// https://www.anutechlauncher.net/projects/linked-earth-observations/wiki/Dynamic_RDF_generation
-/*		Node subj = trip.getMatchSubject(), pred = trip.getMatchPredicate(),
+		Node subj = trip.getMatchSubject(), pred = trip.getMatchPredicate(),
 				obj = trip.getMatchObject();
-		if (subj != null) {
-			// If the subject is a URI, we can try to parse it to figure out
-			// which observation it represents; if not, we have nothing to
-			// return
-			if (subj.isURI()) {
-				String toParse = subj.getURI();
-				// TODO: Need both parser and new object hierarchy to be
-				// implemented before I do anything substantial here
-			}
-		} else if (pred != null && obj != null) {
-			// TODO: Can handle predicates like rdf:type here
-		} else {
-			// TODO
-		}*/
-		rv = rv.andThen(pixelStream().filter(trip::matches).iterator());
+		Stream<Observation> observations = matchingObservations(subj, pred,
+				obj);
+		rv = rv.andThen(observations
+				.flatMap(obs -> mapToTriples(obs, pred, obj)).iterator());
 		return rv;
 	}
 

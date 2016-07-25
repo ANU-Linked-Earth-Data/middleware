@@ -2,10 +2,7 @@ package anuled.dynamicstore.rdfmapper.properties;
 
 import java.util.stream.Stream;
 
-import org.apache.jena.datatypes.DatatypeFormatException;
-import org.apache.jena.rdf.model.LiteralRequiredException;
-import org.apache.jena.rdf.model.Resource;
-
+import org.apache.jena.graph.Node;
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.rdfmapper.ObservationFilter;
 import anuled.dynamicstore.util.JenaUtil;
@@ -19,16 +16,17 @@ public class DGGSLevelSquareProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Resource> valuesForObservation(Observation obs) {
-		return Stream.of(JenaUtil.createLiteralResource(obs.getCellLevel()));
+	public Stream<Node> valuesForObservation(Observation obs) {
+		return Stream.of(JenaUtil.createLiteralNode(obs.getCellLevel()));
 	}
 	
 	@Override
-	public void applyToFilter(ObservationFilter filter, Resource value) {
+	public void applyToFilter(ObservationFilter filter, Node value) {
 		int res;
 		try {
-			res = value.asLiteral().getInt();
-		} catch (DatatypeFormatException|LiteralRequiredException e) {
+			String strVal = value.getLiteral().getLexicalForm();
+			res = Integer.parseInt(strVal);
+		} catch (UnsupportedOperationException|NumberFormatException e) {
 			filter.constrainImpossibly();
 			return;
 		}

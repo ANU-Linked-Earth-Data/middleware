@@ -2,32 +2,31 @@ package anuled.dynamicstore.rdfmapper.properties;
 
 import java.util.stream.Stream;
 
-import org.apache.jena.datatypes.DatatypeFormatException;
-import org.apache.jena.rdf.model.LiteralRequiredException;
-import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.graph.Node;
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.rdfmapper.ObservationFilter;
 import anuled.dynamicstore.util.JenaUtil;
-import anuled.vocabulary.QB;
+import anuled.vocabulary.LED;
 
 public class BandProperty implements ObservationProperty {
 
 	@Override
 	public String getURI() {
-		return QB.Observation.getURI();
+		return LED.etmBand.getURI();
 	}
 
 	@Override
-	public Stream<Resource> valuesForObservation(Observation obs) {
-		return Stream.of(JenaUtil.createLiteralResource(obs.getBand()));
+	public Stream<Node> valuesForObservation(Observation obs) {
+		return Stream.of(JenaUtil.createLiteralNode(obs.getBand()));
 	}
 
 	@Override
-	public void applyToFilter(ObservationFilter filter, Resource value) {
+	public void applyToFilter(ObservationFilter filter, Node value) {
 		int band;
 		try {
-			band = value.asLiteral().getInt();
-		} catch (DatatypeFormatException|LiteralRequiredException e) {
+			String literalValue = value.getLiteral().getLexicalForm();
+			band = Integer.parseInt(literalValue);
+		} catch (UnsupportedOperationException|NumberFormatException e) {
 			filter.constrainImpossibly();
 			return;
 		}
