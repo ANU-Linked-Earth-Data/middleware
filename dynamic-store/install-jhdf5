@@ -5,7 +5,7 @@
 
 set -e
 
-DL_URL="https://wiki-bsse.ethz.ch/download/attachments/26609237/sis-jhdf5-14.12.6-r36356.zip?version=1&modificationDate=1462044819824&api=v2"
+DL_URLS=("https://anulinkedearth.org/jhdf5/sis-jhdf5-14.12.6-r36356.zip" "https://wiki-bsse.ethz.ch/download/attachments/26609237/sis-jhdf5-14.12.6-r36356.zip?version=1&modificationDate=1462044819824&api=v2")
 VERSION="14.12.6-r36356"
 DL_NAME="sis-jhdf5-$VERSION.zip"
 WORK_DIR="jhdf5"
@@ -16,7 +16,21 @@ if [ ! -d "$extract_path" ]; then
     dl_path="$WORK_DIR/$DL_NAME"
     if [ ! -f "$dl_path" ]; then
         echo "Downloading to $dl_path"
-        wget -O "$dl_path" "$DL_URL"
+        for mirror in "${DL_URLS[@]}"; do
+            wget -O "$dl_path" "$mirror" && got_data=1
+            if [ -z "$got_data" ]; then
+                echo "Download from $mirror failed, removing $dl_path"
+                rm "$dl_path"
+            else
+                break
+            fi
+        done
+        if [ -z "$got_data" ]; then
+            echo "Download failed"
+            exit 1
+        else
+            echo "Downloaded from $mirror"
+        fi
     fi
     echo "Extracting to $extract_path"
     unzip -d "$extract_path" "$dl_path"
