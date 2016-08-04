@@ -84,4 +84,10 @@ public class TestURLScheme {private HDF5Dataset ds;
 				"https://anulinkedearth.org/rdf/observation/2013/05/27/23/58/20/cell/R7852/levelSquare-5/levelPixel-7/band-4",
 				URLScheme.observationURL(tlObs));
 	}
+	
+	@Test
+	public void testConstructor() {
+		// junk test to get coverage
+		new URLScheme();
+	}
 }

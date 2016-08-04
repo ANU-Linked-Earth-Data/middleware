@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import org.apache.jena.rdf.model.Resource;
+
 public class PropertyIndex {
 	private static Map<String, ObservationProperty> index = new HashMap<String, ObservationProperty>();
 
@@ -35,6 +37,10 @@ public class PropertyIndex {
 			}
 			register(inst);
 		});
+	}
+	
+	public static ObservationProperty getProperty(Resource uri) {
+		return getProperty(uri.getURI());
 	}
 
 	public static ObservationProperty getProperty(String uri) {

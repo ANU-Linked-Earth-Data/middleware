@@ -3,6 +3,8 @@ package anuled.dynamicstore.rdfmapper;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.RDF;
@@ -16,8 +18,10 @@ import anuled.dynamicstore.TestData;
 import anuled.dynamicstore.backend.Cell;
 import anuled.dynamicstore.backend.HDF5Dataset;
 import anuled.dynamicstore.backend.Observation;
+import anuled.dynamicstore.backend.PixelObservation;
 import anuled.dynamicstore.rdfmapper.properties.ObservationProperty;
 import anuled.dynamicstore.rdfmapper.properties.PropertyIndex;
+import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
 
@@ -47,33 +51,40 @@ public class TestObservationFilter {
 		ds.dispose();
 	}
 
-	private void checkObservation(Observation obs) {
-		// observation -> URL -> meta is just a fast way of getting an observationMeta
+	private void checkObservation(Observation obs) throws CloneNotSupportedException {
+		// observation -> URL -> meta is just a fast way of getting an
+		// observationMeta
 		String obsURL = URLScheme.observationURL(obs);
 		ObservationMeta meta = URLScheme.parseObservationURL(obsURL);
 		Observation shouldMatch = ObservationFilter.retrieveFromMeta(meta, ds);
 		assertNotNull(shouldMatch);
 		assertTrue(obs.equals(shouldMatch));
-		
+
 		// Try retrieving some junk, just because we can
-		meta.cell = meta.cell + "AKSJD";
-		assertNull(null, ObservationFilter.retrieveFromMeta(meta, ds));
+		ObservationMeta brokenCellMeta = meta.clone();
+		brokenCellMeta.cell = brokenCellMeta.cell + "AKSJD";
+		assertNull(ObservationFilter.retrieveFromMeta(brokenCellMeta, ds));
+		
+		ObservationMeta brokenLevelMeta = meta.clone();
+		brokenLevelMeta.levelPixel = -1;
+		assertNull(ObservationFilter.retrieveFromMeta(brokenLevelMeta, ds));
 	}
 
 	@Test
-	public void testGetFromMeta() {
+	public void testGetFromMeta() throws CloneNotSupportedException {
 		Cell cell = ds.dggsCell("R7852");
 		checkObservation(cell.pixelObservation(4));
 		checkObservation(cell.tileObservation(3));
 	}
-	
+
 	private void checkTypeFilterCount(int expected, Resource val) {
 		filter = new ObservationFilter(ds);
-		ObservationProperty typeFilter = PropertyIndex.getProperty(RDF.type.getURI());
+		ObservationProperty typeFilter = PropertyIndex
+				.getProperty(RDF.type.getURI());
 		typeFilter.applyToFilter(filter, val.asNode());
 		assertEquals(expected, filter.execute().count());
 	}
-	
+
 	@Test
 	public void testFilterByType() {
 		// First, count the number of observations (no filtering)
@@ -82,5 +93,78 @@ public class TestObservationFilter {
 		checkTypeFilterCount(84, QB.Observation);
 		checkTypeFilterCount(42, LED.Pixel);
 		checkTypeFilterCount(42, LED.GridSquare);
+	}
+
+	@Test
+	public void testIncompatibleType() {
+		filter.constrainToPixel();
+		filter.constrainToPixel();
+		assertEquals(84 / 2, filter.execute().count());
+		filter.constrainToTile();
+		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testIncompatibleLevel() {
+		filter.constrainLevel(3);
+		filter.constrainLevel(3);
+		assertEquals(14, filter.execute().count());
+		filter.constrainLevel(5);
+		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testIncompatibleBand() {
+		filter.constrainBandNum(3);
+		filter.constrainBandNum(3);
+		assertEquals(84 / 7, filter.execute().count());
+		filter.constrainBandNum(4);
+		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testIncompatibleCellID() {
+		filter.constrainCellID("R78");
+		filter.constrainCellID("R78");
+		filter.constrainCellID("R91");
+		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testNonexistentProperty() {
+		filter.constrainProperty("http://example.com/doesntExist",
+				JenaUtil.createLiteralNode(42));
+		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testConstrainNaively() {
+		// there are some thing that we can't really constrain by in an efficent
+		// way
+		filter.constrainNaively(PropertyIndex.getProperty(LED.etmBand),
+				JenaUtil.createLiteralNode(3));
+		List<Observation> allObs = filter.execute()
+				.collect(Collectors.toList());
+		// there are 84 observations total in the test set, and 7 bands, so we
+		// should get back 1/7th of the observations
+		assertEquals(84 / 7, allObs.size());
+		for (Observation obs : allObs) {
+			assertEquals(3, obs.getBand());
+		}
+	}
+
+	@Test
+	public void testIndirectNaiveConstraint() {
+		// we can only really filter values naively, since we don't have an
+		// inverted index for them
+		filter.constrainProperty(LED.value.getURI(),
+				JenaUtil.createLiteralNode(new Double(931.0)));
+		List<Observation> allObs = filter.execute()
+				.collect(Collectors.toList());
+		assertEquals(1, allObs.size());
+		for (Observation obs : allObs) {
+			assertTrue(obs instanceof PixelObservation);
+			assertEquals(931.0, ((PixelObservation) obs).getPixel(), 0.001);
+		}
 	}
 }

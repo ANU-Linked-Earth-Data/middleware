@@ -3,6 +3,8 @@ package anuled.dynamicstore;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
@@ -15,6 +17,7 @@ import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.impl.ModelCom;
 import org.apache.jena.util.iterator.ExtendedIterator;
+import org.apache.jena.vocabulary.RDF;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -23,6 +26,7 @@ import org.junit.Test;
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
+import anuled.vocabulary.QB;
 
 public class TestLandsatGraph {
 	private LandsatGraph graph;
@@ -96,7 +100,26 @@ public class TestLandsatGraph {
 
 	@Test
 	public void testMapToTriples() {
-		// TODO
+		Observation obs = graph.obsForURI(awesomeURI);
+		// non-URI predicate should yield no triples
+		assertEquals(0,
+				graph.mapToTriples(obs,
+						JenaUtil.createLiteralNode("some literal"), null)
+						.count());
+
+		List<Triple> trips = graph
+				.mapToTriples(obs, null, QB.Observation.asNode())
+				.collect(Collectors.toList());
+		assertEquals(1, trips.size());
+		Triple firstTrip = trips.get(0);
+		assertEquals(awesomeURI, firstTrip.getSubject().getURI());
+		assertEquals(RDF.type.asNode(), firstTrip.getPredicate());
+		assertEquals(QB.Observation.asNode(), firstTrip.getObject());
+
+		// now make sure we get two triples back for general types
+		// (qb:Observation and LED:GridSquare or LED:Pixel)
+		assertEquals(2,
+				graph.mapToTriples(obs, RDF.type.asNode(), null).count());
 	}
 
 	@Test(timeout = 30000)
