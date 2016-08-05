@@ -51,7 +51,8 @@ public class TestObservationFilter {
 		ds.dispose();
 	}
 
-	private void checkObservation(Observation obs) throws CloneNotSupportedException {
+	private void checkObservation(Observation obs)
+			throws CloneNotSupportedException {
 		// observation -> URL -> meta is just a fast way of getting an
 		// observationMeta
 		String obsURL = URLScheme.observationURL(obs);
@@ -64,7 +65,7 @@ public class TestObservationFilter {
 		ObservationMeta brokenCellMeta = meta.clone();
 		brokenCellMeta.cell = brokenCellMeta.cell + "AKSJD";
 		assertNull(ObservationFilter.retrieveFromMeta(brokenCellMeta, ds));
-		
+
 		ObservationMeta brokenLevelMeta = meta.clone();
 		brokenLevelMeta.levelPixel = -1;
 		assertNull(ObservationFilter.retrieveFromMeta(brokenLevelMeta, ds));
@@ -166,5 +167,118 @@ public class TestObservationFilter {
 			assertTrue(obs instanceof PixelObservation);
 			assertEquals(931.0, ((PixelObservation) obs).getPixel(), 0.001);
 		}
+	}
+
+	@Test
+	public void testFilterByDGGSSquare() {
+		filter.constrainProperty(LED.dggsCell.getURI(),
+				JenaUtil.createLiteralNode("R7852"));
+		List<Observation> allObs = filter.execute()
+				.collect(Collectors.toList());
+		assertEquals(14, allObs.size());
+		for (Observation obs : allObs) {
+			assertEquals("R7852", obs.getCell().getDGGSIdent());
+		}
+
+		// compatible constrain doesn't change anything
+		filter.constrainProperty(LED.dggsCell.getURI(),
+				JenaUtil.createLiteralNode("R7852"));
+		assertEquals(14, filter.execute().count());
+
+		// incompatible constraint breaks everything
+		filter.constrainProperty(LED.dggsCell.getURI(),
+				JenaUtil.createLiteralNode("R785"));
+		assertEquals(0, filter.execute().count());
+
+		filter.constrainProperty(LED.dggsCell.getURI(),
+				JenaUtil.createURINode("http://not-a-literal/"));
+		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testFilterByNonExistentSquare() {
+		filter.constrainProperty(LED.dggsCell.getURI(),
+				JenaUtil.createLiteralNode("R8192"));
+		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testFilterByBand() {
+		filter.constrainProperty(LED.etmBand.getURI(),
+				JenaUtil.createLiteralNode(3));
+		List<Observation> allObs = filter.execute()
+				.collect(Collectors.toList());
+		assertEquals(12, allObs.size());
+		for (Observation obs : allObs) {
+			assertEquals(3, obs.getBand());
+		}
+
+		filter.constrainProperty(LED.etmBand.getURI(),
+				JenaUtil.createLiteralNode(3));
+		assertEquals(12, filter.execute().count());
+
+		filter.constrainProperty(LED.etmBand.getURI(),
+				JenaUtil.createLiteralNode(4));
+		assertEquals(0, filter.execute().count());
+
+		filter.constrainProperty(LED.etmBand.getURI(),
+				JenaUtil.createURINode("http://not-a-literal/"));
+		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testFilterByNonexistentBand() {
+		filter.constrainProperty(LED.etmBand.getURI(),
+				JenaUtil.createLiteralNode(17));
+		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testFilterByLevel() {
+		filter.constrainProperty(LED.dggsLevelSquare.getURI(),
+				JenaUtil.createLiteralNode(5));
+		List<Observation> allObs = filter.execute()
+				.collect(Collectors.toList());
+		assertEquals(14, allObs.size());
+		for (Observation obs : allObs) {
+			assertEquals(5, obs.getCellLevel());
+		}
+
+		filter.constrainProperty(LED.dggsLevelSquare.getURI(),
+				JenaUtil.createLiteralNode(5));
+		assertEquals(14, filter.execute().count());
+
+		filter.constrainProperty(LED.dggsLevelSquare.getURI(),
+				JenaUtil.createLiteralNode(6));
+		assertEquals(0, filter.execute().count());
+
+		filter.constrainProperty(LED.dggsLevelSquare.getURI(),
+				JenaUtil.createURINode("http://not-a-literal/"));
+		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testFilterByNonexistentLevel() {
+		filter.constrainProperty(LED.dggsLevelSquare.getURI(),
+				JenaUtil.createLiteralNode(21));
+		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testComposeFilters() {
+		filter.constrainProperty(LED.dggsCell.getURI(),
+				JenaUtil.createLiteralNode("R7852"));
+		filter.constrainProperty(LED.etmBand.getURI(),
+				JenaUtil.createLiteralNode(5));
+		filter.constrainProperty(LED.dggsLevelSquare.getURI(),
+				JenaUtil.createLiteralNode(5));
+		filter.constrainProperty(RDF.type.getURI(), LED.Pixel.asNode());
+		List<Observation> allObs = filter.execute()
+				.collect(Collectors.toList());
+		assertEquals(1, allObs.size());
+		Observation firstObs = allObs.get(0);
+		assertEquals(5, firstObs.getBand());
+		assertEquals("R7852", firstObs.getCell().getDGGSIdent());
+		assertEquals(5, firstObs.getCellLevel());
 	}
 }

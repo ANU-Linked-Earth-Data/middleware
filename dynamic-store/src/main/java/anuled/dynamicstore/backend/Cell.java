@@ -161,6 +161,9 @@ public class Cell {
 			mkRange = () -> {
 				return IntStream.range(0, getNumBands());
 			};
+		} else if (band < 0 || band >= getNumBands()) {
+			// can only get valid bands
+			return Stream.of();
 		} else {
 			mkRange = () -> {
 				return IntStream.of(band);

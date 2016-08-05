@@ -108,8 +108,7 @@ public class ObservationFilter {
 						for (Pair<ObservationProperty, Node> pair : naiveConstraints) {
 							ObservationProperty prop = pair.getLeft();
 							Node expected = pair.getRight();
-							Stream<Node> actual = prop
-									.valuesForObservation(o);
+							Stream<Node> actual = prop.valuesForObservation(o);
 							if (!actual.anyMatch(v -> expected.equals(v))) {
 								return false;
 							}

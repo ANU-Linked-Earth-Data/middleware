@@ -25,6 +25,13 @@ public class TestUtil {
 	public static short INVALID_VALUE = -999;
 
 	@Test
+	public void testConstructor() {
+		// does nothing, thanks JaCoCo
+		new JenaUtil();
+		new ImageUtil();
+	}
+
+	@Test
 	public void testMakeImage() {
 		BufferedImage im = ImageUtil.arrayToImage(TEST_ARRAY, INVALID_VALUE);
 		assertEquals(7, im.getHeight());

@@ -10,6 +10,9 @@ public abstract class Observation {
 	Cell cell;
 
 	protected Observation(Cell cell, int band) {
+		if (band < 0 || band >= cell.getNumBands()) {
+			throw new InvalidBandException("Band " + band + " out of range [0, " + cell.getNumBands() + ")");
+		}
 		this.cell = cell;
 		this.band = band;
 	}
@@ -53,7 +56,7 @@ public abstract class Observation {
 		return getCell().equals(obsOther.getCell())
 				&& getBand() == obsOther.getBand();
 	}
-	
+
 	@Override
 	public int hashCode() {
 		return getBand() ^ getCell().hashCode();

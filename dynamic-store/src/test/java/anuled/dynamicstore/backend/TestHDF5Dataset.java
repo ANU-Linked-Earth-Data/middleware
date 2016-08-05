@@ -127,6 +127,14 @@ public class TestHDF5Dataset {
 		assertEquals(8, tileObs.getPixelLevel());
 		assertEquals(9 * pixelObs.getResolution(), tileObs.getResolution(),
 				1e-1);
+
+		boolean gotException = false;
+		try {
+			cell.pixelObservation(12);
+		} catch (InvalidBandException e) {
+			gotException = true;
+		}
+		assertTrue(gotException);
 	}
 
 	@Test
@@ -144,7 +152,7 @@ public class TestHDF5Dataset {
 		Cell cell = ds.dggsCell("R78520");
 		PixelObservation pixelObs = cell.pixelObservation(3);
 		TileObservation tileObs = cell.tileObservation(3);
-		
+
 		// Start with some cell checks
 		assertTrue(cell.equals(cell));
 		assertTrue(cell.equals(ds.dggsCell("R78520")));

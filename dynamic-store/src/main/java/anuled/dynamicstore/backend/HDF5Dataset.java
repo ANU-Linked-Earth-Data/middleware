@@ -106,7 +106,7 @@ public class HDF5Dataset {
 		// If a cell ID was specified, use it
 		if (cellID != null) {
 			// Having the wrong cell level makes us return nothing
-			if (cellLevel == cellID.length()) {
+			if (cellLevel == null || cellLevel.equals(cellID.length())) {
 				Cell theCell = cellsByID.get(cellID);
 				if (theCell != null) {
 					return Stream.of(theCell);
