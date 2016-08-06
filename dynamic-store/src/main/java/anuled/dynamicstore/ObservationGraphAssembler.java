@@ -9,13 +9,13 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.sparql.util.graph.GraphUtils;
 import anuled.vocabulary.LED;
 
-public class LandsatGraphAssembler extends AssemblerBase {
+public class ObservationGraphAssembler extends AssemblerBase {
 	private static boolean initialised = false;
 
 	public static void init() {
 		if (!initialised) {
-			Assembler.general.implementWith(LED.LandsatGraph,
-					new LandsatGraphAssembler());
+			Assembler.general.implementWith(LED.ObservationGraph,
+					new ObservationGraphAssembler());
 			initialised = true;
 		}
 	}
@@ -27,8 +27,7 @@ public class LandsatGraphAssembler extends AssemblerBase {
 		// that isn't documented is beyond me.
 		GraphUtils.exactlyOneProperty(root, LED.hdf5Path);
 		String hdf5Path = GraphUtils.getAsStringValue(root, LED.hdf5Path);
-		LandsatGraph graph = new LandsatGraph(hdf5Path);
+		ObservationGraph graph = new ObservationGraph(hdf5Path);
 		return ModelFactory.createModelForGraph(graph);
 	}
-
 }

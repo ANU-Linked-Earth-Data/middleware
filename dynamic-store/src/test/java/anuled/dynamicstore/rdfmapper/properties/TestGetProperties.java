@@ -125,7 +125,7 @@ public class TestGetProperties {
 
 	@Test
 	public void testDataset() {
-		assertNodeListIsURI(LED.LandsatGraph.getURI(),
+		assertNodeListIsURI(LED.ObservationGraph.getURI(),
 				getProp(QB.dataSet, pxObs));
 	}
 

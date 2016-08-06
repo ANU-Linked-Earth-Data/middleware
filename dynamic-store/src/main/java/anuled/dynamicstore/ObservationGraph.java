@@ -26,11 +26,11 @@ import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.QB;
 
 /**
- * Jena graph which can be queried from LandSat data, retrieved from a GeoTIFF
+ * Jena graph which can be queried from satellite data, retrieved from an HDF5
  * file. This will get refactored later on (so that multiple tiles are
  * supported, new rasters can be added, etc.)
  */
-public final class LandsatGraph extends GraphBase {
+public final class ObservationGraph extends GraphBase {
 	/**
 	 * Will store <code>qb:Dataset</code>,
 	 * <code>qb:DatastructureDefinition</code>, etc. These properties will be
@@ -39,7 +39,7 @@ public final class LandsatGraph extends GraphBase {
 	private Model dataCubeMeta = ModelFactory.createDefaultModel();
 	private HDF5Dataset reader;
 
-	public LandsatGraph(String h5Filename) {
+	public ObservationGraph(String h5Filename) {
 		super();
 		initMeta();
 		reader = new HDF5Dataset(h5Filename);
@@ -49,7 +49,7 @@ public final class LandsatGraph extends GraphBase {
 	private void initMeta() {
 		// TODO: Make metadata customisable. Should be able to pass in a Turtle
 		// file from the command line or something like that.
-		InputStream stream = LandsatGraph.class
+		InputStream stream = ObservationGraph.class
 				.getResourceAsStream("/cube-meta.ttl");
 		dataCubeMeta.read(stream, null, "TTL");
 		try {

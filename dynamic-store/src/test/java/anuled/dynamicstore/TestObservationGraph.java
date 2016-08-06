@@ -28,8 +28,8 @@ import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
 
-public class TestLandsatGraph {
-	private LandsatGraph graph;
+public class TestObservationGraph {
+	private ObservationGraph graph;
 	private Model model;
 	private static TestData td;
 	private static String prefixes = "prefix ogc: <http://www.opengis.net/ont/geosparql#>\n"
@@ -62,7 +62,7 @@ public class TestLandsatGraph {
 
 	@Before
 	public void setUp() throws Exception {
-		graph = new LandsatGraph(td.getPath());
+		graph = new ObservationGraph(td.getPath());
 		model = new ModelCom(graph);
 	}
 

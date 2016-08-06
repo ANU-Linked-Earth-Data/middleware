@@ -6,16 +6,16 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix ja: <http://jena.hpl.hp.com/2005/11/Assembler#> .
 
-[] ja:loadClass "anuled.dynamicstore.LandsatGraphAssembler" .
+[] ja:loadClass "anuled.dynamicstore.ObservationGraphAssembler" .
 
-led:LandsatGraph rdfs:subClassOf ja:Object .
+led:ObservationGraph rdfs:subClassOf ja:Object .
  
 <#testDataset> a ja:RDFDataset
     ; rdfs:label "Landsat dataset"
     ; ja:defaultGraph <#testGraph>
     .
 
-<#testGraph> a led:LandsatGraph
+<#testGraph> a led:ObservationGraph
     ; rdfs:label "Graph loaded from test HDF5 fixture"
     ; led:hdf5Path <ignored_by_test>
     .

@@ -18,7 +18,7 @@ public class DataSetProperty implements ObservationProperty {
 	@Override
 	public Stream<Node> valuesForObservation(Observation obs) {
 		// TODO Get the real dataset URI
-		return Stream.of(LED.LandsatGraph.asNode());
+		return Stream.of(LED.ObservationGraph.asNode());
 	}
 
 }

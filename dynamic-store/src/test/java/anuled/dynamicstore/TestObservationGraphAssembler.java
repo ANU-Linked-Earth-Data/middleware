@@ -17,7 +17,7 @@ import org.junit.Test;
 
 import anuled.vocabulary.LED;
 
-public class TestLandsatGraphAssembler {
+public class TestObservationGraphAssembler {
 	private static TestData td;
 
 	@BeforeClass
@@ -32,16 +32,16 @@ public class TestLandsatGraphAssembler {
 
 	@Test(timeout = 60000)
 	public void testAssembler() throws IOException {
-		LandsatGraphAssembler.init();
+		ObservationGraphAssembler.init();
 		innerTest();
-		LandsatGraphAssembler.init();
-		LandsatGraphAssembler.init();
+		ObservationGraphAssembler.init();
+		ObservationGraphAssembler.init();
 		innerTest();
 	}
 
 	private void innerTest() throws IOException {
 		Model spec = ModelFactory.createDefaultModel();
-		InputStream stream = TestLandsatGraphAssembler.class
+		InputStream stream = TestObservationGraphAssembler.class
 				.getResourceAsStream("/simple-landsat-graph.ttl");
 		spec.read(stream, null, "TTL");
 		stream.close();

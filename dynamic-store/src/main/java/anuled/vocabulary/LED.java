@@ -32,7 +32,9 @@ public class LED extends AbstractVocabulary {
 	public static final Property dggsLevelPixel = property("dggsLevelPixel");
 	public static final Property etmBand = property("etmBand");
 	
-	// These are for Jena
+	// These are for Jena and the middleware
+	public static final Property middlewareConfig = property("middlewareConfig");
 	public static final Property hdf5Path = property("hdf5Path");
-	public static final Resource LandsatGraph = resource("LandsatGraph");
+	public static final Resource ObservationGraph = resource("ObservationGraph");
+	public static final Resource MiddlewareConfig = resource("MiddlewareConfig");
 }
