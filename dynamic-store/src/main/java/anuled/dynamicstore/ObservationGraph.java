@@ -44,6 +44,12 @@ public final class ObservationGraph extends GraphBase {
 		initMeta();
 		reader = new HDF5Dataset(h5Filename);
 	}
+	
+	public ObservationGraph(HDF5Dataset reader) {
+		super();
+		initMeta();
+		this.reader = reader;
+	}
 
 	/** Initialise metadata associated with this dataset. */
 	private void initMeta() {
