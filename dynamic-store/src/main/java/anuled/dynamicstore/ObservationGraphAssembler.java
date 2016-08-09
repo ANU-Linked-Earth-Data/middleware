@@ -27,7 +27,8 @@ public class ObservationGraphAssembler extends AssemblerBase {
 		// that isn't documented is beyond me.
 		GraphUtils.exactlyOneProperty(root, LED.hdf5Path);
 		String hdf5Path = GraphUtils.getAsStringValue(root, LED.hdf5Path);
-		ObservationGraph graph = new ObservationGraph(hdf5Path);
+		// FIXME: yes, this is broken. I really need to get rid of this assembler, though
+		ObservationGraph graph = new ObservationGraph(hdf5Path, "http://something");
 		return ModelFactory.createModelForGraph(graph);
 	}
 }

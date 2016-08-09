@@ -67,10 +67,10 @@ public class TestHighLevelDataset {
 		}
 
 		// does the observation match the dataset?
-		Node someObs = trips.get(0).getPredicate();
-		trips = everything.find(someObs, QB.DataSet.asNode(), null).toList();
+		Node someObs = trips.get(0).getSubject();
+		trips = everything.find(someObs, QB.dataSet.asNode(), null).toList();
 		assertEquals(1, trips.size());
-		assertEquals(datasetNode, trips.get(0));
+		assertEquals(datasetNode, trips.get(0).getObject());
 	}
 
 }

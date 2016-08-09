@@ -62,7 +62,7 @@ public class TestObservationGraph {
 
 	@Before
 	public void setUp() throws Exception {
-		graph = new ObservationGraph(td.getPath());
+		graph = new ObservationGraph(td.getPath(), "http://example.com/fakeDS");
 		model = new ModelCom(graph);
 	}
 

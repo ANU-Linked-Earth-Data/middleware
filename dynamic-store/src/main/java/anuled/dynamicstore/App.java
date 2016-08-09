@@ -14,7 +14,7 @@ public class App {
 					"Need a path to an HDF5 tile, and no other arguments");
 			System.exit(1);
 		}
-		ObservationGraph graph = new ObservationGraph(args[0]);
+		ObservationGraph graph = new ObservationGraph(args[0], "http://example.com/");
 		Model model = new ModelCom(graph);
 		Query q = QueryFactory
 				.create("PREFIX qb: <http://purl.org/linked-data/cube#>\n"

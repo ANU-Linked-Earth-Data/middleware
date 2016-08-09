@@ -65,7 +65,7 @@ public class TestGetProperties {
 	private List<Node> getProp(String prop, Observation obs) {
 		ObservationProperty fetcher = PropertyIndex.getProperty(prop);
 		assertNotNull(fetcher);
-		return fetcher.valuesForObservation(obs).collect(Collectors.toList());
+		return fetcher.valuesForObservation(obs, "http://fake/").collect(Collectors.toList());
 	}
 
 	@Test
@@ -125,7 +125,7 @@ public class TestGetProperties {
 
 	@Test
 	public void testDataset() {
-		assertNodeListIsURI(LED.ObservationGraph.getURI(),
+		assertNodeListIsURI("http://fake/",
 				getProp(QB.dataSet, pxObs));
 	}
 

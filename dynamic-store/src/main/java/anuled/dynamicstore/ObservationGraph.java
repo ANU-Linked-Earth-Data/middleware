@@ -1,19 +1,12 @@
 package anuled.dynamicstore;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.stream.Stream;
 
-import org.apache.jena.graph.FrontsTriple;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.graph.impl.GraphBase;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.iterator.ExtendedIterator;
-import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.util.iterator.WrappedIterator;
 
 import anuled.dynamicstore.backend.HDF5Dataset;
 import anuled.dynamicstore.backend.Observation;
@@ -23,7 +16,6 @@ import anuled.dynamicstore.rdfmapper.URLScheme;
 import anuled.dynamicstore.rdfmapper.properties.ObservationProperty;
 import anuled.dynamicstore.rdfmapper.properties.PropertyIndex;
 import anuled.dynamicstore.util.JenaUtil;
-import anuled.vocabulary.QB;
 
 /**
  * Jena graph which can be queried from satellite data, retrieved from an HDF5
@@ -36,46 +28,19 @@ public final class ObservationGraph extends GraphBase {
 	 * <code>qb:DatastructureDefinition</code>, etc. These properties will be
 	 * searched first on any query (we can speed that up later)
 	 */
-	private Model dataCubeMeta = ModelFactory.createDefaultModel();
 	private HDF5Dataset reader;
+	private String qbDataSetURI;
 
-	public ObservationGraph(String h5Filename) {
+	public ObservationGraph(String h5Filename, String qbDataSetURI) {
 		super();
-		initMeta();
 		reader = new HDF5Dataset(h5Filename);
+		this.qbDataSetURI = qbDataSetURI;
 	}
 	
-	public ObservationGraph(HDF5Dataset reader) {
+	public ObservationGraph(HDF5Dataset reader, String qbDataSetURI) {
 		super();
-		initMeta();
 		this.reader = reader;
-	}
-
-	/** Initialise metadata associated with this dataset. */
-	private void initMeta() {
-		// TODO: Make metadata customisable. Should be able to pass in a Turtle
-		// file from the command line or something like that.
-		InputStream stream = ObservationGraph.class
-				.getResourceAsStream("/cube-meta.ttl");
-		dataCubeMeta.read(stream, null, "TTL");
-		try {
-			stream.close();
-		} catch (IOException e) {
-			throw new RuntimeException("Error closing metadata stream", e);
-		}
-
-		// find the URI for the actual dataset
-		StmtIterator iter = dataCubeMeta.listStatements(null, RDF.type,
-				QB.DataSet);
-		if (!iter.hasNext()) {
-			throw new RuntimeException(
-					"Invalid configuration: need a qb:DataSet");
-		}
-		iter.next(); // just to get rid of one
-		if (iter.hasNext()) {
-			throw new RuntimeException(
-					"Invalid configuration: can't have more than one qb:DataSet");
-		}
+		this.qbDataSetURI = qbDataSetURI;
 	}
 
 	/**
@@ -112,7 +77,7 @@ public final class ObservationGraph extends GraphBase {
 			if (pred.isURI()) {
 				ObservationProperty prop = PropertyIndex
 						.getProperty(pred.getURI());
-				Stream<Node> vals = prop.valuesForObservation(obs);
+				Stream<Node> vals = prop.valuesForObservation(obs, qbDataSetURI);
 				return vals.map(val -> new Triple(obsNode, pred, val))
 						.filter(t -> objMatches(t, obj));
 			}
@@ -124,7 +89,7 @@ public final class ObservationGraph extends GraphBase {
 			Node propNode = JenaUtil.createURINode(propURI);
 			// XXX: Something is going wrong on the next line
 			ObservationProperty prop = PropertyIndex.getProperty(propURI);
-			Stream<Node> propVals = prop.valuesForObservation(obs);
+			Stream<Node> propVals = prop.valuesForObservation(obs, qbDataSetURI);
 			return propVals
 					.map(objNode -> new Triple(obsNode, propNode, objNode));
 		}).filter(t -> objMatches(t, obj));
@@ -199,12 +164,6 @@ public final class ObservationGraph extends GraphBase {
 	 */
 	@Override
 	protected ExtendedIterator<Triple> graphBaseFind(Triple trip) {
-		// Get metadata first
-		Statement stmt = dataCubeMeta.asStatement(trip);
-		StmtIterator metaStmts = dataCubeMeta.listStatements(stmt.getSubject(),
-				stmt.getPredicate(), stmt.getObject());
-		ExtendedIterator<Triple> rv = metaStmts.mapWith(FrontsTriple::asTriple);
-
 		// For good examples of optimisation opportunities, see:
 		// https://www.anutechlauncher.net/projects/linked-earth-observations/wiki/Dynamic_RDF_generation
 		Node subj = trip.getMatchSubject(), pred = trip.getMatchPredicate(),
@@ -213,8 +172,7 @@ public final class ObservationGraph extends GraphBase {
 				obj);
 		Stream<Triple> lsTrips = observations
 				.flatMap(obs -> mapToTriples(obs, pred, obj));
-		rv = rv.andThen(lsTrips.iterator());
-		return rv;
+		return WrappedIterator.create(lsTrips.iterator());
 	}
 
 }

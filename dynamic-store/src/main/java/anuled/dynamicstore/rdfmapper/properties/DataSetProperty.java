@@ -5,7 +5,7 @@ import java.util.stream.Stream;
 import org.apache.jena.graph.Node;
 
 import anuled.dynamicstore.backend.Observation;
-import anuled.vocabulary.LED;
+import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.QB;
 
 public class DataSetProperty implements ObservationProperty {
@@ -17,8 +17,12 @@ public class DataSetProperty implements ObservationProperty {
 
 	@Override
 	public Stream<Node> valuesForObservation(Observation obs) {
-		// TODO Get the real dataset URI
-		return Stream.of(LED.ObservationGraph.asNode());
+		throw new RuntimeException("Need to call valuesForObservation(obs, hld) instead");
+	}
+
+	@Override
+	public Stream<Node> valuesForObservation(Observation obs, String qbDataSetURI) {
+		return Stream.of(JenaUtil.createURINode(qbDataSetURI));
 	}
 
 }
