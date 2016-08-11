@@ -11,7 +11,7 @@
 @prefix fu: <http://jena.apache.org/fuseki#> .
 
 [] a fu:Server
-    ; ja:loadClass "anuled.dynamicstore.ObservationGraphAssembler"
+    ; ja:loadClass "anuled.dynamicstore.QBCovGraphAssembler"
     ; fu:services (<#testService>)
     .
 
@@ -29,12 +29,8 @@ led:ObservationGraph rdfs:subClassOf ja:Object .
     ; ja:defaultGraph <#testGraph>
     .
 
-<#testGraph> a led:ObservationGraph
+<#testGraph> a led:QBCovGraph
     ; rdfs:label "Graph loaded from test HDF5 fixture"
-    ; led:middlewareConfig <#middlewareConfig>
     ; led:hdf5Path "src/test/resources/LS8_OLI_TIRS_NBAR_149_-036_2013-05-27T23-58-20.h5"
-    .
-    
-<#middlewareConfig> a led:MiddlewareConfig
-    ; led:rootURI <https://anulinkedearth.org/datasets/>
+    ; led:uriPrefix <https://anulinkedearth.org/datasets/>
     .
