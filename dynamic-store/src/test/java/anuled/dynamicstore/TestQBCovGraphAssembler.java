@@ -17,7 +17,7 @@ import org.junit.Test;
 
 import anuled.vocabulary.LED;
 
-public class TestObservationGraphAssembler {
+public class TestQBCovGraphAssembler {
 	private static TestData td;
 
 	@BeforeClass
@@ -32,16 +32,16 @@ public class TestObservationGraphAssembler {
 
 	@Test(timeout = 60000)
 	public void testAssembler() throws IOException {
-		ObservationGraphAssembler.init();
+		QBCovGraphAssembler.init();
 		innerTest();
-		ObservationGraphAssembler.init();
-		ObservationGraphAssembler.init();
+		QBCovGraphAssembler.init();
+		QBCovGraphAssembler.init();
 		innerTest();
 	}
 
 	private void innerTest() throws IOException {
 		Model spec = ModelFactory.createDefaultModel();
-		InputStream stream = TestObservationGraphAssembler.class
+		InputStream stream = TestQBCovGraphAssembler.class
 				.getResourceAsStream("/simple-landsat-graph.ttl");
 		spec.read(stream, null, "TTL");
 		stream.close();
@@ -65,6 +65,7 @@ public class TestObservationGraphAssembler {
 		assertTrue(gotException);
 
 		// now try it again without any path
+		graphDef.removeAll(LED.hdf5Path);
 		graphDef.removeAll(LED.hdf5Path);
 		gotException = false;
 		try {

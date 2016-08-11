@@ -18,6 +18,7 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.impl.ModelCom;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -96,6 +97,12 @@ public class TestObservationGraph {
 		allObs = graph.matchingObservations(null,
 				JenaUtil.createLiteralNode("Oh dear"), null);
 		assertEquals(0, allObs.count()); // literal predicates? Nope.
+		
+		allObs = graph.matchingObservations(null, RDFS.range.asNode(), null);
+		assertEquals(0, allObs.count()); // nonexistent predicate
+		
+		allObs = graph.matchingObservations(JenaUtil.createLiteralNode("something"), null, null);
+		assertEquals(0, allObs.count()); // literal subjects
 	}
 
 	@Test

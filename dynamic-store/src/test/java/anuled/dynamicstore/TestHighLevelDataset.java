@@ -19,7 +19,7 @@ import anuled.vocabulary.QB;
 public class TestHighLevelDataset {
 	static TestData td;
 	static String prefix = "https://hld-test.example.com/data/testgraph/";
-	HighLevelDataset hld;
+	QBCovDataset hld;
 
 	@BeforeClass
 	public static void setUpClass() throws IOException {
@@ -33,7 +33,7 @@ public class TestHighLevelDataset {
 
 	@Before
 	public void setUp() {
-		hld = new HighLevelDataset(td.getPath(), prefix);
+		hld = new QBCovDataset(td.getPath(), prefix);
 	}
 	
 	@Test

@@ -9,13 +9,13 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.sparql.util.graph.GraphUtils;
 import anuled.vocabulary.LED;
 
-public class ObservationGraphAssembler extends AssemblerBase {
+public class QBCovGraphAssembler extends AssemblerBase {
 	private static boolean initialised = false;
 
 	public static void init() {
 		if (!initialised) {
-			Assembler.general.implementWith(LED.ObservationGraph,
-					new ObservationGraphAssembler());
+			Assembler.general.implementWith(LED.QBCovGraph,
+					new QBCovGraphAssembler());
 			initialised = true;
 		}
 	}
@@ -26,9 +26,10 @@ public class ObservationGraphAssembler extends AssemblerBase {
 		// false. It just throws an exception when the condition isn't met. Why
 		// that isn't documented is beyond me.
 		GraphUtils.exactlyOneProperty(root, LED.hdf5Path);
+		GraphUtils.exactlyOneProperty(root, LED.uriPrefix);
 		String hdf5Path = GraphUtils.getAsStringValue(root, LED.hdf5Path);
-		// FIXME: yes, this is broken. I really need to get rid of this assembler, though
-		ObservationGraph graph = new ObservationGraph(hdf5Path, "http://something");
-		return ModelFactory.createModelForGraph(graph);
+		String uriPrefix = GraphUtils.getAsStringValue(root, LED.uriPrefix);
+		QBCovDataset graph = new QBCovDataset(hdf5Path, uriPrefix);
+		return ModelFactory.createModelForGraph(graph.getQBGraph());
 	}
 }

@@ -42,7 +42,7 @@ import anuled.vocabulary.QB;
  * The union of these graphs yields the aforementioend virtual RDF data cube
  * graph.
  */
-public class HighLevelDataset {
+public class QBCovDataset {
 	private String uriPrefix, hdf5Path;
 	private HDF5Dataset backingDataset;
 	private ObservationGraph observationGraph;
@@ -50,7 +50,7 @@ public class HighLevelDataset {
 	private Graph unionGraph;
 	private Resource qbDataSet;
 
-	public HighLevelDataset(String hdf5Path, String uriPrefix) {
+	public QBCovDataset(String hdf5Path, String uriPrefix) {
 		this.hdf5Path = hdf5Path;
 		this.uriPrefix = uriPrefix;
 

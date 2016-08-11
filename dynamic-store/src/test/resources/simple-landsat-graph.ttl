@@ -6,7 +6,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix ja: <http://jena.hpl.hp.com/2005/11/Assembler#> .
 
-[] ja:loadClass "anuled.dynamicstore.ObservationGraphAssembler" .
+[] ja:loadClass "anuled.dynamicstore.QBCovGraphAssembler" .
 
 led:ObservationGraph rdfs:subClassOf ja:Object .
  
@@ -15,7 +15,8 @@ led:ObservationGraph rdfs:subClassOf ja:Object .
     ; ja:defaultGraph <#testGraph>
     .
 
-<#testGraph> a led:ObservationGraph
+<#testGraph> a led:QBCovGraph
     ; rdfs:label "Graph loaded from test HDF5 fixture"
     ; led:hdf5Path <ignored_by_test>
+    ; led:uriPrefix <https://example.com/simple-landsat-graph/>
     .
