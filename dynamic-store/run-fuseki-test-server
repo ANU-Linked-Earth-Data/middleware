@@ -10,10 +10,17 @@ if [ ! -f "$TARGET" ]; then
     mvn package
 fi
 
+DEFAULT_ARGS="--conf=src/test/resources/fuseki-conf.ttl"
+EXTRA_ARGS=""
+if [ -z "$@" ]; then
+    echo "No arguments supplied; using default of $DEFAULT_ARGS"
+    EXTRA_ARGS="$DEFAULT_ARGS"
+fi
+
 # Now fetch Fuseki and run it with our custom classes
 . get-fuseki.sh
 export FUSEKI_HOME="$FUSEKI_DIR"
 export FUSEKI_BASE="$WORK_DIR/fuseki-base"
 export EXTRA_JARS="$TARGET"
 echo "Running test server"
-exec "$FUSEKI_DIR/fuseki-server" --conf=src/test/resources/fuseki-conf.ttl $@
+exec "$FUSEKI_DIR/fuseki-server" $EXTRA_ARGS $@
