@@ -3,7 +3,6 @@ package anuled.dynamicstore.rdfmapper.properties;
 import static org.junit.Assert.*;
 
 import java.util.Set;
-import java.util.stream.Stream;
 
 import org.apache.jena.vocabulary.RDF;
 import org.junit.Test;
@@ -13,21 +12,21 @@ import anuled.dynamicstore.rdfmapper.properties.*;
 
 @SuppressWarnings("unused")
 public class TestPropertyIndex {
-
 	@Test
 	public void testGetProperty() {
-		ObservationProperty prop = PropertyIndex.getProperty(LED.dggsCell.getURI());
+		ObservationProperty prop = PropertyIndex
+				.getProperty(LED.dggsCell.getURI()).get();
 		assertNotNull(prop);
 		assertTrue(prop instanceof DGGSCellProperty);
-		
-		prop = PropertyIndex.getProperty(RDF.type.getURI());
+
+		prop = PropertyIndex.getProperty(RDF.type.getURI()).get();
 		assertNotNull(prop);
 		assertTrue(prop instanceof RDFTypeProperty);
-		
-		prop = PropertyIndex.getProperty(LED.GridSquare.getURI());
-		assertNull(prop);
+
+		assertFalse(
+				PropertyIndex.getProperty(LED.GridSquare.getURI()).isPresent());
 	}
-	
+
 	@Test
 	public void testPropertyStream() {
 		Set<String> allProps = PropertyIndex.propertyURIs();

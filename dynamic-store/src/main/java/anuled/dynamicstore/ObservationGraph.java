@@ -1,5 +1,6 @@
 package anuled.dynamicstore;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
@@ -36,7 +37,7 @@ public final class ObservationGraph extends GraphBase {
 		reader = new HDF5Dataset(h5Filename);
 		this.qbDataSetURI = qbDataSetURI;
 	}
-	
+
 	public ObservationGraph(HDF5Dataset reader, String qbDataSetURI) {
 		super();
 		this.reader = reader;
@@ -72,14 +73,18 @@ public final class ObservationGraph extends GraphBase {
 			Node obj) {
 		String obsURL = URLScheme.observationURL(obs);
 		Node obsNode = JenaUtil.createURINode(obsURL);
+
 		if (pred != null) {
-			// We only fetch the matching predicate
+			// We only fetch the matching predicate, if we can
 			if (pred.isURI()) {
-				ObservationProperty prop = PropertyIndex
+				Optional<ObservationProperty> maybeProp = PropertyIndex
 						.getProperty(pred.getURI());
-				Stream<Node> vals = prop.valuesForObservation(obs, qbDataSetURI);
-				return vals.map(val -> new Triple(obsNode, pred, val))
-						.filter(t -> objMatches(t, obj));
+				if (maybeProp.isPresent()) {
+					Stream<Node> vals = maybeProp.get()
+							.valuesForObservation(obs, qbDataSetURI);
+					return vals.map(val -> new Triple(obsNode, pred, val))
+							.filter(t -> objMatches(t, obj));
+				}
 			}
 			return Stream.of();
 		}
@@ -87,8 +92,9 @@ public final class ObservationGraph extends GraphBase {
 		// Return triples associated with every predicate
 		return PropertyIndex.propertyURIs().stream().flatMap(propURI -> {
 			Node propNode = JenaUtil.createURINode(propURI);
-			ObservationProperty prop = PropertyIndex.getProperty(propURI);
-			Stream<Node> propVals = prop.valuesForObservation(obs, qbDataSetURI);
+			ObservationProperty prop = PropertyIndex.getProperty(propURI).get();
+			Stream<Node> propVals = prop.valuesForObservation(obs,
+					qbDataSetURI);
 			return propVals
 					.map(objNode -> new Triple(obsNode, propNode, objNode));
 		}).filter(t -> objMatches(t, obj));
@@ -136,9 +142,10 @@ public final class ObservationGraph extends GraphBase {
 			}
 		} else if (pred != null) {
 			if (pred.isURI()) {
-				ObservationProperty prop = PropertyIndex
+				Optional<ObservationProperty> maybeProp = PropertyIndex
 						.getProperty(pred.getURI());
-				if (prop != null) {
+				if (maybeProp.isPresent()) {
+					ObservationProperty prop = maybeProp.get();
 					if (obj != null) {
 						ObservationFilter filter = new ObservationFilter(
 								reader);

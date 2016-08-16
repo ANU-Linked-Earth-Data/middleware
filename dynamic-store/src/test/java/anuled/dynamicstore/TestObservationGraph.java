@@ -97,11 +97,12 @@ public class TestObservationGraph {
 		allObs = graph.matchingObservations(null,
 				JenaUtil.createLiteralNode("Oh dear"), null);
 		assertEquals(0, allObs.count()); // literal predicates? Nope.
-		
+
 		allObs = graph.matchingObservations(null, RDFS.range.asNode(), null);
 		assertEquals(0, allObs.count()); // nonexistent predicate
-		
-		allObs = graph.matchingObservations(JenaUtil.createLiteralNode("something"), null, null);
+
+		allObs = graph.matchingObservations(
+				JenaUtil.createLiteralNode("something"), null, null);
 		assertEquals(0, allObs.count()); // literal subjects
 	}
 
@@ -112,6 +113,14 @@ public class TestObservationGraph {
 		assertEquals(0,
 				graph.mapToTriples(obs,
 						JenaUtil.createLiteralNode("some literal"), null)
+						.count());
+		// query for a URI we no know nothing about should yield no triples
+		assertEquals(
+				0, graph
+						.mapToTriples(obs,
+								JenaUtil.createURINode(
+										"http://example.com/dontexist"),
+								null)
 						.count());
 
 		List<Triple> trips = graph

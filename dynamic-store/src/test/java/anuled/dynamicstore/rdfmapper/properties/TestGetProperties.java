@@ -63,8 +63,7 @@ public class TestGetProperties {
 	}
 
 	private List<Node> getProp(String prop, Observation obs) {
-		ObservationProperty fetcher = PropertyIndex.getProperty(prop);
-		assertNotNull(fetcher);
+		ObservationProperty fetcher = PropertyIndex.getProperty(prop).get();
 		return fetcher.valuesForObservation(obs, "http://fake/").collect(Collectors.toList());
 	}
 

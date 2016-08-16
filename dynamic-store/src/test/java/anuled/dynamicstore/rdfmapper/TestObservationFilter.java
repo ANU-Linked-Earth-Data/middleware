@@ -81,7 +81,7 @@ public class TestObservationFilter {
 	private void checkTypeFilterCount(int expected, Resource val) {
 		filter = new ObservationFilter(ds);
 		ObservationProperty typeFilter = PropertyIndex
-				.getProperty(RDF.type.getURI());
+				.getProperty(RDF.type.getURI()).get();
 		typeFilter.applyToFilter(filter, val.asNode());
 		assertEquals(expected, filter.execute().count());
 	}
@@ -142,7 +142,7 @@ public class TestObservationFilter {
 	public void testConstrainNaively() {
 		// there are some thing that we can't really constrain by in an efficent
 		// way
-		filter.constrainNaively(PropertyIndex.getProperty(LED.etmBand),
+		filter.constrainNaively(PropertyIndex.getProperty(LED.etmBand).get(),
 				JenaUtil.createLiteralNode(3));
 		List<Observation> allObs = filter.execute()
 				.collect(Collectors.toList());

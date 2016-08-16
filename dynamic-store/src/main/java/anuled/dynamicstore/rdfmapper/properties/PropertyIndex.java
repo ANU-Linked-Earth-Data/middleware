@@ -2,6 +2,7 @@ package anuled.dynamicstore.rdfmapper.properties;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -26,8 +27,7 @@ public class PropertyIndex {
 				DGGSLevelSquareProperty.class, ImageDataProperty.class,
 				LatProperty.class, LongProperty.class, PixelValueProperty.class,
 				RDFTypeProperty.class, ResolutionProperty.class,
-				TimeProperty.class
-		);
+				TimeProperty.class);
 		toRegister.forEach(cls -> {
 			ObservationProperty inst;
 			try {
@@ -38,15 +38,16 @@ public class PropertyIndex {
 			register(inst);
 		});
 	}
-	
-	public static ObservationProperty getProperty(Resource uri) {
+
+	public static Optional<ObservationProperty> getProperty(Resource uri) {
 		return getProperty(uri.getURI());
 	}
 
-	public static ObservationProperty getProperty(String uri) {
-		return index.get(uri);
+	public static Optional<ObservationProperty> getProperty(String uri) {
+		ObservationProperty prop = index.get(uri);
+		return Optional.ofNullable(prop);
 	}
-	
+
 	public static Set<String> propertyURIs() {
 		return index.keySet();
 	}
