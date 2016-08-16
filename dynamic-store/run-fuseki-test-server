@@ -12,7 +12,7 @@ fi
 
 DEFAULT_ARGS="--conf=src/test/resources/fuseki-conf.ttl"
 EXTRA_ARGS=""
-if [ -z "$@" ]; then
+if [ "$#" -lt 1 ]; then
     echo "No arguments supplied; using default of $DEFAULT_ARGS"
     EXTRA_ARGS="$DEFAULT_ARGS"
 fi
