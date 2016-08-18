@@ -8,9 +8,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
-
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -19,7 +18,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import anuled.dynamicstore.TestData;
-import ch.systemsx.cisd.base.mdarray.MDShortArray;
 
 public class TestHDF5Dataset {
 	private HDF5Dataset ds;
@@ -86,6 +84,13 @@ public class TestHDF5Dataset {
 		assertTrue(bounds.stream().map(l -> l.size() == 2)
 				.reduce((l, r) -> l && r).get());
 	}
+	
+	private void isPNG(byte[] data) {
+		// In a real programming language, -0x77 would be written 0x89
+		byte[] magic = {-0x77, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
+		assertTrue(data.length > magic.length);
+		assertEquals(magic, Arrays.copyOfRange(data, 0, magic.length));
+	}
 
 	@Test
 	public void testCell() {
@@ -100,11 +105,8 @@ public class TestHDF5Dataset {
 		double[] reqPixel = new double[] { 4874.4, 4663.9, 4913.4, 5029.4,
 				5192.7, 4063.1, 3048.7 };
 		assertArrayEquals(reqPixel, cell.pixelData(), 1e-1);
-		MDShortArray td = cell.tileData();
-		int[] dims = td.dimensions();
-		assertArrayEquals(new int[] { 7, 9, 9 }, dims);
-		Stream<Observation> obs = cell.observations(null, null);
-		assertEquals(14, obs.count());
+		byte[] td = cell.tileData(3);
+		isPNG(td);
 	}
 
 	@Test
@@ -120,9 +122,9 @@ public class TestHDF5Dataset {
 		assertEquals(6, pixelObs.getCellLevel());
 
 		TileObservation tileObs = cell.tileObservation(4);
-		short[][] tile = tileObs.getTile();
-		assertEquals(9, tile.length);
-		assertEquals(9, tile[0].length);
+		// Just make sure we're getting PNG back (roughly)
+		byte[] tile = tileObs.getTile();
+		isPNG(tile);
 		assertEquals(6, tileObs.getCellLevel());
 		assertEquals(8, tileObs.getPixelLevel());
 		assertEquals(9 * pixelObs.getResolution(), tileObs.getResolution(),

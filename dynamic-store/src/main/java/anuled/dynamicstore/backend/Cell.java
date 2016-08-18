@@ -6,8 +6,8 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import ch.systemsx.cisd.base.mdarray.MDShortArray;
 import ch.systemsx.cisd.hdf5.IHDF5DoubleReader;
+import ch.systemsx.cisd.hdf5.IHDF5OpaqueReader;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
 import ch.systemsx.cisd.hdf5.IHDF5ShortReader;
 import ncsa.hdf.hdf5lib.exceptions.HDF5SymbolTableException;
@@ -49,10 +49,6 @@ public class Cell {
 		} catch (HDF5SymbolTableException e) {
 			throw new NotACell();
 		}
-		long[] dims = fp.getDataSetInformation(path + "/data").getDimensions();
-		assert dims.length == 3 && dims[1] == dims[2]
-				&& dims[0] == getNumBands();
-		tileSize = (int) dims[1];
 
 		// centre is (lon, lat)
 		IHDF5DoubleReader doubleReader = fp.float64();
@@ -105,12 +101,12 @@ public class Cell {
 		return pixelValue;
 	}
 
-	/** Get all channels and pixels of a tile covering this cell */
-	public MDShortArray tileData() {
+	/** Get PNG data for a particular band */
+	public byte[] tileData(int band) {
 		IHDF5Reader fp = owner.getReader();
-		IHDF5ShortReader dataReader = fp.int16();
-		MDShortArray rv = dataReader.readMDArray(path + "/data");
-		return rv;
+		IHDF5OpaqueReader dataReader = fp.opaque();
+		String dsPath = path + "/png_band_" + band;
+		return dataReader.readArray(dsPath);
 	}
 
 	/**
