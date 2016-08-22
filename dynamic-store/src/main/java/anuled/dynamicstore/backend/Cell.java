@@ -6,8 +6,8 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import ch.systemsx.cisd.hdf5.IHDF5ByteReader;
 import ch.systemsx.cisd.hdf5.IHDF5DoubleReader;
-import ch.systemsx.cisd.hdf5.IHDF5OpaqueReader;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
 import ch.systemsx.cisd.hdf5.IHDF5ShortReader;
 import ncsa.hdf.hdf5lib.exceptions.HDF5SymbolTableException;
@@ -104,16 +104,8 @@ public class Cell {
 	/** Get PNG data for a particular band */
 	public byte[] tileData(int band) {
 		IHDF5Reader fp = owner.getReader();
-		IHDF5OpaqueReader dataReader = fp.opaque();
+		IHDF5ByteReader dataReader = fp.uint8();
 		String dsPath = path + "/png_band_" + band;
-		// XXX: readArray is horribly bugged. For some reason it thinks that
-		// everything is of size zero. Specifically (at an implementation level)
-		// it gets a spaceParams object which always has a blockSize of zero.
-		// However, the actual number of elements is still read correctly.
-		// XXX: getArrayNaturalBlocks is also bugged---it just dies from an
-		// internal indexError.
-		// XXX: readArrayBlocks dies with an informative exception: "Data Set is
-		// expected to be of rank 1 (rank=0)"
 		return dataReader.readArray(dsPath);
 	}
 

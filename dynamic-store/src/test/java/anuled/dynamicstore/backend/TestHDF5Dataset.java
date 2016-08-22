@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -84,12 +85,15 @@ public class TestHDF5Dataset {
 		assertTrue(bounds.stream().map(l -> l.size() == 2)
 				.reduce((l, r) -> l && r).get());
 	}
-	
+
 	private void isPNG(byte[] data) {
 		// In a real programming language, -0x77 would be written 0x89
-		byte[] magic = {-0x77, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
+		byte[] magic = { -0x77, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
 		assertTrue(data.length > magic.length);
-		assertEquals(magic, Arrays.copyOfRange(data, 0, magic.length));
+		for (int i = 0; i < magic.length && i < data.length; i++) {
+			System.out.println(i);
+			assertEquals(magic[i], data[i]);
+		}
 	}
 
 	@Test
