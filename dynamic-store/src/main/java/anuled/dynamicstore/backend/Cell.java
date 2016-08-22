@@ -106,6 +106,14 @@ public class Cell {
 		IHDF5Reader fp = owner.getReader();
 		IHDF5OpaqueReader dataReader = fp.opaque();
 		String dsPath = path + "/png_band_" + band;
+		// XXX: readArray is horribly bugged. For some reason it thinks that
+		// everything is of size zero. Specifically (at an implementation level)
+		// it gets a spaceParams object which always has a blockSize of zero.
+		// However, the actual number of elements is still read correctly.
+		// XXX: getArrayNaturalBlocks is also bugged---it just dies from an
+		// internal indexError.
+		// XXX: readArrayBlocks dies with an informative exception: "Data Set is
+		// expected to be of rank 1 (rank=0)"
 		return dataReader.readArray(dsPath);
 	}
 
