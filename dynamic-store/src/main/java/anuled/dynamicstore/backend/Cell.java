@@ -8,6 +8,7 @@ import java.util.stream.Stream;
 
 import ch.systemsx.cisd.hdf5.IHDF5ByteReader;
 import ch.systemsx.cisd.hdf5.IHDF5DoubleReader;
+import ch.systemsx.cisd.hdf5.IHDF5IntReader;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
 import ch.systemsx.cisd.hdf5.IHDF5ShortReader;
 import ncsa.hdf.hdf5lib.exceptions.HDF5SymbolTableException;
@@ -56,6 +57,9 @@ public class Cell {
 
 		IHDF5ShortReader shortReader = fp.int16();
 		invalidValue = shortReader.getAttr(path, "missing_value");
+		
+		IHDF5IntReader intReader = fp.int32();
+		tileSize = intReader.getAttr(path, "tile_size");
 
 		// bounds are list of (lon, lat), IIRC
 		double[][] allBounds = doubleReader.getMatrixAttr(path, "bounds");

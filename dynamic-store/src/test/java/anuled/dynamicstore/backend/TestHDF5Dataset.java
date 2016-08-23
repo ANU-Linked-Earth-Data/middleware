@@ -1,15 +1,9 @@
 package anuled.dynamicstore.backend;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -91,7 +85,6 @@ public class TestHDF5Dataset {
 		byte[] magic = { -0x77, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
 		assertTrue(data.length > magic.length);
 		for (int i = 0; i < magic.length && i < data.length; i++) {
-			System.out.println(i);
 			assertEquals(magic[i], data[i]);
 		}
 	}
@@ -105,6 +98,7 @@ public class TestHDF5Dataset {
 		// Now proceed with a valid cell
 		cell = ds.dggsCell("R7852");
 		assertNotNull(cell);
+		assertEquals(9, cell.tileSize());
 		assertEquals("Cell R7852", cell.toString());
 		double[] reqPixel = new double[] { 4874.4, 4663.9, 4913.4, 5029.4,
 				5192.7, 4063.1, 3048.7 };
