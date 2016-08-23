@@ -3,10 +3,15 @@ package anuled.dynamicstore;
 import org.apache.jena.assembler.Assembler;
 import org.apache.jena.assembler.Mode;
 import org.apache.jena.assembler.assemblers.AssemblerBase;
+import org.apache.jena.query.ARQ;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.sparql.engine.main.StageBuilder;
+import org.apache.jena.sparql.engine.main.StageGenerator;
 import org.apache.jena.sparql.util.graph.GraphUtils;
+
+import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator;
 import anuled.vocabulary.LED;
 
 public class QBCovGraphAssembler extends AssemblerBase {
@@ -16,6 +21,13 @@ public class QBCovGraphAssembler extends AssemblerBase {
 		if (!initialised) {
 			Assembler.general.implementWith(LED.QBCovGraph,
 					new QBCovGraphAssembler());
+			
+			StageGenerator oldGenerator = (StageGenerator) ARQ.getContext()
+					.get(ARQ.stageGenerator);
+			StageGenerator newGenerator = new ObservationGraphStageGenerator(
+					oldGenerator);
+			StageBuilder.setGenerator(ARQ.getContext(), newGenerator);
+			
 			initialised = true;
 		}
 	}
