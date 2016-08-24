@@ -16,3 +16,9 @@ Guide to this repo:
   generate RDF triples from Landsat data on the fly, and doesn't have to make
   those triples persist (huge space saving!).
 - `scripts/` is for development utilities which don't belong anywhere else.
+
+# Caveats
+
+We don't currently implement any spatial predicates, but when we do there will
+likely be more "gotchas" to list here (e.g. crossing the dateline, behaviour
+in polar regions, etc.)
