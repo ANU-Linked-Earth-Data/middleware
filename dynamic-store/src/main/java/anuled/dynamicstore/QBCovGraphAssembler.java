@@ -17,23 +17,56 @@ import anuled.vocabulary.LED;
 public class QBCovGraphAssembler extends AssemblerBase {
 	private static boolean initialised = false;
 
+	private static QBCovDataset getDataset(Assembler asm, Resource root) {
+		GraphUtils.exactlyOneProperty(root, LED.qbCovDataset);
+		// Modelled off Lucene code, which also uses assemblers to construct
+		// things which aren't models (and has to access them later somehow!)
+		// https://github.com/apache/jena/blob/c7b83dbe6490fb67a33d55ce2b5b06ba07646e15/jena-text/src/main/java/org/apache/jena/query/text/assembler/EntityDefinitionAssembler.java
+		return (QBCovDataset) asm.open(
+				root.getProperty(LED.qbCovDataset).getObject().asResource());
+	}
+
 	public static void init() {
 		if (!initialised) {
-			Assembler.general.implementWith(LED.QBCovGraph,
+			Assembler.general.implementWith(LED.QBCovDataset,
 					new QBCovGraphAssembler());
-			
+
+			// Metadata graph assembler
+			Assembler.general.implementWith(LED.QBCovObservationGraph,
+					new AssemblerBase() {
+						@Override
+						public Model open(Assembler a, Resource root,
+								Mode mode) {
+							return ModelFactory.createModelForGraph(
+									getDataset(a, root).getObservationGraph());
+						}
+					});
+
+			// Observation graph assembler
+			Assembler.general.implementWith(LED.QBCovMetaGraph,
+					new AssemblerBase() {
+						@Override
+						public Model open(Assembler a, Resource root,
+								Mode mode) {
+							return ModelFactory.createModelForGraph(
+									getDataset(a, root).getMetaGraph());
+						}
+					});
+
+			// as good a place as any to put this in
+			// now we only have to load one custom class in our Fuseki configs
 			StageGenerator oldGenerator = (StageGenerator) ARQ.getContext()
 					.get(ARQ.stageGenerator);
 			StageGenerator newGenerator = new ObservationGraphStageGenerator(
 					oldGenerator);
 			StageBuilder.setGenerator(ARQ.getContext(), newGenerator);
-			
+
 			initialised = true;
 		}
 	}
 
 	@Override
-	public Model open(Assembler a, Resource root, Mode mode) {
+	public QBCovDataset open(Assembler a, Resource root, Mode mode) {
 		// As far as I can tell, exactlyOneProperty never actually returns
 		// false. It just throws an exception when the condition isn't met. Why
 		// that isn't documented is beyond me.
@@ -41,7 +74,6 @@ public class QBCovGraphAssembler extends AssemblerBase {
 		GraphUtils.exactlyOneProperty(root, LED.uriPrefix);
 		String hdf5Path = GraphUtils.getAsStringValue(root, LED.hdf5Path);
 		String uriPrefix = GraphUtils.getAsStringValue(root, LED.uriPrefix);
-		QBCovDataset graph = new QBCovDataset(hdf5Path, uriPrefix);
-		return ModelFactory.createModelForGraph(graph.getQBGraph());
+		return new QBCovDataset(hdf5Path, uriPrefix);
 	}
 }

@@ -1,7 +1,6 @@
 package anuled.dynamicstore;
 
 import org.apache.jena.graph.Graph;
-import org.apache.jena.graph.compose.DisjointUnion;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
@@ -39,7 +38,7 @@ import anuled.vocabulary.QB;
  * queries, etc.</li>
  * </ol>
  * 
- * The union of these graphs yields the aforementioend virtual RDF data cube
+ * The union of these graphs yields the aforementioned virtual RDF data cube
  * graph.
  */
 public class QBCovDataset {
@@ -47,7 +46,6 @@ public class QBCovDataset {
 	private HDF5Dataset backingDataset;
 	private ObservationGraph observationGraph;
 	private Model metaModel = ModelFactory.createDefaultModel();
-	private Graph unionGraph;
 	private Resource qbDataSet;
 
 	public QBCovDataset(String hdf5Path, String uriPrefix) {
@@ -59,8 +57,6 @@ public class QBCovDataset {
 		buildMetaModel();
 		observationGraph = new ObservationGraph(backingDataset,
 				qbDataSet.getURI());
-
-		unionGraph = new DisjointUnion(metaModel.getGraph(), observationGraph);
 	}
 
 	private void buildMetaModel() {
@@ -173,8 +169,12 @@ public class QBCovDataset {
 				.addLiteral(dggs, "rHEALPix WGS84 Ellipsoid");
 	}
 
-	public Graph getQBGraph() {
-		return unionGraph;
+	public Graph getObservationGraph() {
+		return observationGraph;
+	}
+	
+	public Graph getMetaGraph() {
+		return metaModel.getGraph();
 	}
 
 	public String getPrefix() {

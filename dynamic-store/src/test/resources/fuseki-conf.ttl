@@ -26,11 +26,24 @@ led:ObservationGraph rdfs:subClassOf ja:Object .
  
 <#testDataset> a ja:RDFDataset
     ; rdfs:label "Landsat dataset"
-    ; ja:defaultGraph <#testGraph>
+    ; ja:namedGraph [ ja:graphName <#testObsGraph>
+                    ; ja:graph <#testObsGraph> ]
+    ; ja:namedGraph [ ja:graphName <#testMetaGraph>
+                    ; ja:graph <#testMetaGraph> ]
     .
 
-<#testGraph> a led:QBCovGraph
-    ; rdfs:label "Graph loaded from test HDF5 fixture"
+<#qbCovDataset> a led:QBCovDataset
+    ; rdfs:label "Dataset loaded from test HDF5 fixture"
     ; led:hdf5Path "src/test/resources/LS8_OLI_TIRS_NBAR_149_-036_2013-05-27T23-58-20.h5"
     ; led:uriPrefix <https://anulinkedearth.org/datasets/>
+    .
+    
+<#testObsGraph> a led:QBCovObservationGraph
+    ; rdfs:label "Observation graph loaded from test HDF5 fixture"
+    ; led:qbCovDataset <#qbCovDataset>
+    .
+
+<#testMetaGraph> a led:QBCovMetaGraph
+    ; rdfs:label "Metadata graph loaded from test HDF5 fixture"
+    ; led:qbCovDataset <#qbCovDataset>
     .

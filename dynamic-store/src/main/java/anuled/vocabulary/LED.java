@@ -35,5 +35,8 @@ public class LED extends AbstractVocabulary {
 	// These are for Jena and the middleware
 	public static final Property uriPrefix = property("uriPrefix");
 	public static final Property hdf5Path = property("hdf5Path");
-	public static final Resource QBCovGraph = resource("QBCovGraph");
+	public static final Property qbCovDataset = property("qbCovDataset");
+	public static final Resource QBCovDataset = resource("QBCovDataset");
+	public static final Resource QBCovObservationGraph = resource("QBCovObservationGraph");
+	public static final Resource QBCovMetaGraph = resource("QBCovMetaGraph");
 }

@@ -8,6 +8,7 @@ import java.util.List;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
+import org.apache.jena.graph.compose.Union;
 import org.apache.jena.vocabulary.RDF;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -43,7 +44,7 @@ public class TestHighLevelDataset {
 
 	@Test
 	public void testUnionComponents() {
-		Graph everything = hld.getQBGraph();
+		Graph everything = new Union(hld.getMetaGraph(), hld.getObservationGraph());
 
 		// find the qb:Dataset
 		List<Triple> trips = everything

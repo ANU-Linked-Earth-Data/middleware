@@ -12,11 +12,25 @@ led:ObservationGraph rdfs:subClassOf ja:Object .
  
 <#testDataset> a ja:RDFDataset
     ; rdfs:label "Landsat dataset"
-    ; ja:defaultGraph <#testGraph>
+    ; ja:namedGraph [ ja:graphName <#testObsGraph>
+                    ; ja:graph <#testObsGraph> ]
+    ; ja:namedGraph [ ja:graphName <#testMetaGraph>
+                    ; ja:graph <#testMetaGraph> ]
     .
 
-<#testGraph> a led:QBCovGraph
-    ; rdfs:label "Graph loaded from test HDF5 fixture"
+# QBCovDataset is only constructed once, but can be used by both metadata and
+# observations graphs.
+<#qbCovDataset> a led:QBCovDataset
     ; led:hdf5Path <ignored_by_test>
     ; led:uriPrefix <https://example.com/simple-landsat-graph/>
+    .
+    
+<#testObsGraph> a led:QBCovObservationGraph
+    ; rdfs:label "Observation graph loaded from test HDF5 fixture"
+    ; led:qbCovDataset <#qbCovDataset>
+    .
+
+<#testMetaGraph> a led:QBCovMetaGraph
+    ; rdfs:label "Metadata graph loaded from test HDF5 fixture"
+    ; led:qbCovDataset <#qbCovDataset>
     .
