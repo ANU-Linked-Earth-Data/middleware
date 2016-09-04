@@ -4,7 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.io.InputStream;
-
+import java.util.Iterator;
 import org.apache.jena.assembler.Assembler;
 import org.apache.jena.assembler.exceptions.AssemblerException;
 import org.apache.jena.query.Dataset;
@@ -46,16 +46,27 @@ public class TestQBCovGraphAssembler {
 		spec.read(stream, null, "TTL");
 		stream.close();
 		// Correct path
-		Resource graphDef = spec.getResource(spec.expandPrefix(":testGraph"));
-		graphDef.removeAll(LED.hdf5Path);
-		graphDef.addLiteral(LED.hdf5Path, td.getPath());
+		Resource dsDef = spec.getResource(spec.expandPrefix(":qbCovDataset"));
+		dsDef.removeAll(LED.hdf5Path);
+		dsDef.addLiteral(LED.hdf5Path, td.getPath());
 		Resource root = spec.createResource(spec.expandPrefix(":testDataset"));
-		Model model = ((Dataset) Assembler.general.open(root))
-				.getDefaultModel();
-		assertTrue(model.listStatements().hasNext());
-		
+		Dataset ds = (Dataset) Assembler.general.open(root);
+		assertFalse(ds.getDefaultModel().listStatements().hasNext());
+		int numNamedSets = 0;
+		Iterator<String> nameIter = ds.listNames();
+		while (nameIter.hasNext()) {
+			nameIter.next();
+			numNamedSets++;
+		}
+		assertEquals(2, numNamedSets);
+		for (String graphName : new String[] { ":testObsGraph",
+				":testMetaGraph" }) {
+			assertTrue(ds.getNamedModel(spec.expandPrefix(graphName))
+					.listStatements().hasNext());
+		}
+
 		// try with two HDF5 paths
-		graphDef.addLiteral(LED.hdf5Path, "some other path");
+		dsDef.addLiteral(LED.hdf5Path, "some other path");
 		boolean gotException = false;
 		try {
 			Assembler.general.open(root);
@@ -65,8 +76,8 @@ public class TestQBCovGraphAssembler {
 		assertTrue(gotException);
 
 		// now try it again without any path
-		graphDef.removeAll(LED.hdf5Path);
-		graphDef.removeAll(LED.hdf5Path);
+		dsDef.removeAll(LED.hdf5Path);
+		dsDef.removeAll(LED.hdf5Path);
 		gotException = false;
 		try {
 			Assembler.general.open(root);
