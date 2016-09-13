@@ -1,5 +1,6 @@
 package anuled.dynamicstore;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -160,6 +161,23 @@ public final class ObservationGraph extends GraphBase {
 			return getAllObservations();
 		}
 		return Stream.of();
+	}
+	
+	public Stream<String> observationURIs(List<Triple> pattern) {
+		// Get the observation URIs matching the given pattern
+		// All subjects in the pattern must be non-concrete; all
+		// predicates and objects must be concrete.
+		ObservationFilter filter = new ObservationFilter(reader);
+		
+		for (Triple trip : pattern) {
+			String predURI = trip.getPredicate().getURI();
+			assert !trip.getSubject().isConcrete();
+			assert trip.getPredicate().isConcrete();
+			assert trip.getObject().isConcrete();
+			filter.constrainProperty(predURI, trip.getObject());
+		}
+		
+		return filter.execute().map(URLScheme::observationURL);
 	}
 
 	/**

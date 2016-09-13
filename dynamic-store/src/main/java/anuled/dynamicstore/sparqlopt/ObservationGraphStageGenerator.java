@@ -2,23 +2,34 @@ package anuled.dynamicstore.sparqlopt;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.core.BasicPattern;
+import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.binding.Binding;
+import org.apache.jena.sparql.engine.binding.BindingFactory;
 import org.apache.jena.sparql.engine.iterator.QueryIterBlockTriples;
+import org.apache.jena.sparql.engine.iterator.QueryIterConcat;
+import org.apache.jena.sparql.engine.iterator.QueryIterSingleton;
+import org.apache.jena.sparql.engine.join.QueryIterNestedLoopJoin;
 import org.apache.jena.sparql.engine.main.StageGenerator;
 
 import anuled.dynamicstore.ObservationGraph;
+import anuled.dynamicstore.util.JenaUtil;
 
 /**
  * Jena <code>StageGenerator</code> which handles BGP matching for
  * <code>ObservationGraph</code>s intelligently.
  */
+// XXX: Oh god I think I'm registering this in a static initialiser somewhere. I
+// tried all JUnit tests and only testQuery failed, but it won't fail in
+// isolation. Evidently there's an import somewhere which is screwing things up.
 public class ObservationGraphStageGenerator implements StageGenerator {
 	StageGenerator nextStage = null;
 
@@ -72,30 +83,35 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 
 	/** Intelligently handle <code>?var :concrete :concrete</code> blocks. */
 	protected QueryIterator handleVariableBlock(List<Triple> triples,
-			QueryIterator iter, ExecutionContext ctx) {
+			QueryIterator iter, ExecutionContext ctx, ObservationGraph graph) {
 		if (triples.size() == 0) {
 			return iter;
 		}
-		
-		// Plan:
-		// 1) Check whether there's a binding for the current
-		//   variable in the input QueryIterator.
-		// 2) If there is an existing binding for the variable
-		//    we care about, we can just chainTriples normally.
-		// 3) Otherwise, we can use QueryIterExtendByVar on
-		//    each binding.s
-//		Triple firstTrip = triples.get(0);
-//		String varName = firstTrip.getSubject().getName();
-//		Var;
-//		if (iter.hasNext()) {
-//			Binding nextBinding = iter.nextBinding();
-//			nextBinding.contains
-//		}
-//		// Constrain subject filter
-//		for (Triple trip : triples) {
-//
-//		}
-		return chainTriples(triples, iter, ctx);
+
+		// Start with a sanity check to make sure that we're not trying to find
+		// a new value for something that is already bound.
+		Triple firstTrip = triples.get(0);
+		Var newVar = Var.alloc(firstTrip.getSubject());
+		if (iter.hasNext()) {
+			// This is a complicated way of peeking at the iterator :P
+			Binding nextBinding = iter.nextBinding();
+			QueryIterConcat recombined = new QueryIterConcat(ctx);
+			recombined.add(QueryIterSingleton.create(nextBinding, ctx));
+			recombined.add(iter);
+			if (nextBinding.contains(newVar)) {
+				// okay, we can just do this naively!
+				return chainTriples(triples, recombined, ctx);
+			}
+			// Otherwise, we need to take the Cartesian product of bindings :/
+			iter = recombined;
+		}
+
+		Iterator<Binding> obsURIBindings = graph.observationURIs(triples)
+				.map(JenaUtil::createURINode)
+				.map(obsNode -> BindingFactory.binding(newVar, obsNode))
+				.iterator();
+		return new QueryIterNestedLoopJoin(
+				JenaUtil.createQueryIterator(obsURIBindings), iter, ctx);
 	}
 
 	protected enum TripleBlockType {
@@ -165,19 +181,16 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 		if (!(graph instanceof ObservationGraph)) {
 			return nextStage.execute(pattern, input, execCtx);
 		}
-		// All we'll do for now is reorder triples in the pattern.
-		// Check out
-		// https://github.com/apache/jena/blob/master/jena-arq/src-examples/arq/examples/bgpmatching/StageGeneratorAlt.java
-		// for a cool example of chaining through a pattern.
+		ObservationGraph obsGraph = (ObservationGraph) graph;
 		ArrayList<Triple> newTrips = new ArrayList<>();
 		newTrips.addAll(pattern.getList());
 		newTrips.sort(new TripleComparator());
 		QueryIterator finalIter = input;
 		for (TripleBlock block : partitionBlocks(newTrips)) {
-			switch (block.type) {
+			switch (block.type) { // XXX: at the beginning, partitionBlocks somehow produces an empty ARBITRARY_BLOCK!
 			case VARIABLE_PATTERN_BLOCK:
 				finalIter = handleVariableBlock(block.pattern, finalIter,
-						execCtx);
+						execCtx, obsGraph);
 				break;
 			case ARBITRARY_BLOCK:
 				finalIter = chainTriples(block.pattern, finalIter, execCtx);
