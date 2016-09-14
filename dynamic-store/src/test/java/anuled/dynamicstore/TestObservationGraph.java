@@ -148,7 +148,7 @@ public class TestObservationGraph {
 		assertTrue(trips.toList().size() > 100);
 	}
 
-	@Test(timeout = 30000)
+	@Test//(timeout = 30000)
 	public void testQuery() {
 		ResultSet results = runSelect("SELECT * WHERE {?s ?p ?o.} LIMIT 10");
 		// Make sure a query for everything //actually executes//.

@@ -13,15 +13,13 @@ import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.sparql.engine.binding.BindingFactory;
 import org.apache.jena.sparql.engine.iterator.QueryIterBlockTriples;
-import org.apache.jena.sparql.engine.iterator.QueryIterConcat;
+import org.apache.jena.sparql.engine.iterator.QueryIterExtendByVar;
+import org.apache.jena.sparql.engine.iterator.QueryIterRepeatApply;
 import org.apache.jena.sparql.engine.iterator.QueryIterSingleton;
-import org.apache.jena.sparql.engine.join.QueryIterNestedLoopJoin;
 import org.apache.jena.sparql.engine.main.StageGenerator;
 
 import anuled.dynamicstore.ObservationGraph;
-import anuled.dynamicstore.util.JenaUtil;
 
 /**
  * Jena <code>StageGenerator</code> which handles BGP matching for
@@ -82,36 +80,44 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 	}
 
 	/** Intelligently handle <code>?var :concrete :concrete</code> blocks. */
-	protected QueryIterator handleVariableBlock(List<Triple> triples,
-			QueryIterator iter, ExecutionContext ctx, ObservationGraph graph) {
-		if (triples.size() == 0) {
-			return iter;
-		}
+	protected class VariableBlockHandler extends QueryIterRepeatApply {
+		private ObservationGraph graph;
+		private List<Triple> triples;
+		Var newVar;
 
-		// Start with a sanity check to make sure that we're not trying to find
-		// a new value for something that is already bound.
-		Triple firstTrip = triples.get(0);
-		Var newVar = Var.alloc(firstTrip.getSubject());
-		if (iter.hasNext()) {
-			// This is a complicated way of peeking at the iterator :P
-			Binding nextBinding = iter.nextBinding();
-			QueryIterConcat recombined = new QueryIterConcat(ctx);
-			recombined.add(QueryIterSingleton.create(nextBinding, ctx));
-			recombined.add(iter);
-			if (nextBinding.contains(newVar)) {
-				// okay, we can just do this naively!
-				return chainTriples(triples, recombined, ctx);
+		public VariableBlockHandler(QueryIterator input,
+				ExecutionContext context, List<Triple> triples,
+				ObservationGraph graph) {
+			super(input, context);
+			this.graph = graph;
+			this.triples = triples;
+			if (triples.isEmpty()) {
+				newVar = null;
+			} else {
+				Triple firstTrip = triples.get(0);
+				newVar = Var.alloc(firstTrip.getSubject());
 			}
-			// Otherwise, we need to take the Cartesian product of bindings :/
-			iter = recombined;
 		}
 
-		Iterator<Binding> obsURIBindings = graph.observationURIs(triples)
-				.map(JenaUtil::createURINode)
-				.map(obsNode -> BindingFactory.binding(newVar, obsNode))
-				.iterator();
-		return new QueryIterNestedLoopJoin(
-				JenaUtil.createQueryIterator(obsURIBindings), iter, ctx);
+		@Override
+		protected QueryIterator nextStage(Binding binding) {
+			if (newVar == null || binding.contains(newVar)) {
+				QueryIterator single = QueryIterSingleton.create(binding,
+						getExecContext());
+				if (newVar == null) {
+					return single;
+				} else {
+					return chainTriples(triples, single, getExecContext());
+				}
+			}
+			// Don't worry about the cast! observationURIs returns a stream of
+			// ObservationNodes, and ObservationNode is a Node subclass.
+			Iterator<Node> obsURIBindings = graph.observationURIs(triples)
+					.map(n -> (Node) n).iterator();
+			return new QueryIterExtendByVar(binding, newVar, obsURIBindings,
+					getExecContext());
+		}
+
 	}
 
 	protected enum TripleBlockType {
@@ -149,12 +155,14 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 			if (subj.isVariable() && trip.getPredicate().isConcrete()
 					&& trip.getObject().isConcrete()) {
 				if (currentVar == null || !currentVar.equals(subj)) {
-					// end block
-					TripleBlockType nextType = currentVar == null
-							? TripleBlockType.ARBITRARY_BLOCK
-							: TripleBlockType.VARIABLE_PATTERN_BLOCK;
-					allBlocks.add(new TripleBlock(nextType, currentBlock));
-					currentBlock = new ArrayList<>();
+					if (!currentBlock.isEmpty()) {
+						// end block
+						TripleBlockType nextType = currentVar == null
+								? TripleBlockType.ARBITRARY_BLOCK
+								: TripleBlockType.VARIABLE_PATTERN_BLOCK;
+						allBlocks.add(new TripleBlock(nextType, currentBlock));
+						currentBlock = new ArrayList<>();
+					}
 					currentVar = subj;
 				}
 				currentBlock.add(trip);
@@ -187,10 +195,11 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 		newTrips.sort(new TripleComparator());
 		QueryIterator finalIter = input;
 		for (TripleBlock block : partitionBlocks(newTrips)) {
-			switch (block.type) { // XXX: at the beginning, partitionBlocks somehow produces an empty ARBITRARY_BLOCK!
+			assert block.pattern.size() > 0;
+			switch (block.type) {
 			case VARIABLE_PATTERN_BLOCK:
-				finalIter = handleVariableBlock(block.pattern, finalIter,
-						execCtx, obsGraph);
+				finalIter = new VariableBlockHandler(finalIter, execCtx,
+						block.pattern, obsGraph);
 				break;
 			case ARBITRARY_BLOCK:
 				finalIter = chainTriples(block.pattern, finalIter, execCtx);

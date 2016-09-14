@@ -72,8 +72,7 @@ public final class ObservationGraph extends GraphBase {
 	 */
 	protected Stream<Triple> mapToTriples(Observation obs, Node pred,
 			Node obj) {
-		String obsURL = URLScheme.observationURL(obs);
-		Node obsNode = JenaUtil.createURINode(obsURL);
+		Node obsNode = new ObservationNode(obs);
 
 		if (pred != null) {
 			// We only fetch the matching predicate, if we can
@@ -136,7 +135,14 @@ public final class ObservationGraph extends GraphBase {
 			// which observation it represents; if not, we have nothing to
 			// return
 			if (subj.isURI()) {
-				Observation obs = obsForURI(subj.getURI());
+				Observation obs;
+				if (subj instanceof ObservationNode) {
+					// Sometimes the previous stage stores the Observation with
+					// the node so that we don't have to look it up each time.
+					obs = ((ObservationNode) subj).getObservation();
+				} else {
+					obs = obsForURI(subj.getURI());
+				}
 				if (obs != null) {
 					return Stream.of(obs);
 				}
@@ -162,13 +168,13 @@ public final class ObservationGraph extends GraphBase {
 		}
 		return Stream.of();
 	}
-	
-	public Stream<String> observationURIs(List<Triple> pattern) {
+
+	public Stream<ObservationNode> observationURIs(List<Triple> pattern) {
 		// Get the observation URIs matching the given pattern
 		// All subjects in the pattern must be non-concrete; all
 		// predicates and objects must be concrete.
 		ObservationFilter filter = new ObservationFilter(reader);
-		
+
 		for (Triple trip : pattern) {
 			String predURI = trip.getPredicate().getURI();
 			assert !trip.getSubject().isConcrete();
@@ -176,8 +182,8 @@ public final class ObservationGraph extends GraphBase {
 			assert trip.getObject().isConcrete();
 			filter.constrainProperty(predURI, trip.getObject());
 		}
-		
-		return filter.execute().map(URLScheme::observationURL);
+
+		return filter.execute().map(obs -> new ObservationNode(obs));
 	}
 
 	/**
