@@ -1,18 +1,30 @@
 package anuled.dynamicstore.sparqlopt;
 
-import static org.junit.Assert.*;
+import static anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.*;
 import static org.apache.jena.graph.NodeFactory.*;
-import static anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.partitionBlocks;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
+import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.core.Var;
+import org.apache.jena.sparql.engine.ExecutionContext;
+import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.binding.BindingFactory;
+import org.apache.jena.sparql.engine.iterator.QueryIterRoot;
 import org.apache.jena.vocabulary.RDF;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import anuled.dynamicstore.ObservationGraph;
+import anuled.dynamicstore.TestData;
 import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.TripleBlock;
 import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.TripleBlockType;
 import anuled.dynamicstore.util.JenaUtil;
@@ -21,6 +33,23 @@ import anuled.vocabulary.QB;
 
 // I'm genuinely proud of the noun pile that is the name of this class.
 public class ObservationGraphStageGeneratorTest {
+	private ObservationGraph graph;
+	private static TestData td;
+
+	@BeforeClass
+	public static void setUpClass() throws IOException {
+		td = new TestData();
+	}
+
+	@AfterClass
+	public static void tearDownClass() {
+		td.dispose();
+	}
+
+	@Before
+	public void setUp() throws Exception {
+		graph = new ObservationGraph(td.getPath(), "http://example.com/fakeDS");
+	}
 
 	@Test
 	public void testTripleSorting() {
@@ -81,18 +110,33 @@ public class ObservationGraphStageGeneratorTest {
 		assertEquals(4, result.size());
 		assertEquals(TripleBlockType.ARBITRARY_BLOCK, result.get(0).type);
 		assertEquals(2, result.get(1).pattern.size());
-		assertEquals(TripleBlockType.VARIABLE_PATTERN_BLOCK, result.get(1).type);
+		assertEquals(TripleBlockType.VARIABLE_PATTERN_BLOCK,
+				result.get(1).type);
 		assertEquals(2, result.get(1).pattern.size());
-		assertEquals(TripleBlockType.VARIABLE_PATTERN_BLOCK, result.get(2).type);
+		assertEquals(TripleBlockType.VARIABLE_PATTERN_BLOCK,
+				result.get(2).type);
 		assertEquals(1, result.get(2).pattern.size());
 		assertEquals(TripleBlockType.ARBITRARY_BLOCK, result.get(3).type);
 		assertEquals(2, result.get(3).pattern.size());
-		
+
 	}
 
 	@Test
 	public void testExecute() {
+		ObservationGraphStageGenerator gen = new ObservationGraphStageGenerator(
+				null);
+		ExecutionContext ctx = mock(ExecutionContext.class);
+		when(ctx.getActiveGraph()).thenReturn(graph);
+		QueryIterator root = QueryIterRoot.create(BindingFactory.binding(),
+				ctx);
+		QueryIterator result = gen.execute(BasicPattern.wrap(Arrays.asList()),
+				root, ctx);
+		assertEquals(true, result.hasNext());
+		result.next();
+		assertEquals(false, result.hasNext());
 
+		// TODO: Actually test the *interesting* aspects of
+		// ObservationGraphStageGenerator!
 	}
 
 }
