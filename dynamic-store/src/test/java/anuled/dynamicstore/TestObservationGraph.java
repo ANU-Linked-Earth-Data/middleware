@@ -3,6 +3,7 @@ package anuled.dynamicstore;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -16,6 +17,7 @@ import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.impl.ModelCom;
+import org.apache.jena.sparql.core.Var;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
@@ -107,6 +109,20 @@ public class TestObservationGraph {
 	}
 
 	@Test
+	public void testObservationURIs() {
+		List<Triple> trips = Arrays.asList();
+		// should give us everything
+		assertEquals(84, graph.observationURIs(trips).count());
+		Var missingVar = Var.alloc("s");
+		trips = Arrays.asList(
+				new Triple(missingVar, RDF.type.asNode(),
+						LED.GridSquare.asNode()),
+				new Triple(missingVar, LED.etmBand.asNode(),
+						JenaUtil.createLiteralNode(2)));
+		assertEquals(6, graph.observationURIs(trips).count());
+	}
+
+	@Test
 	public void testMapToTriples() {
 		Observation obs = graph.obsForURI(awesomeURI);
 		// non-URI predicate should yield no triples
@@ -148,7 +164,7 @@ public class TestObservationGraph {
 		assertTrue(trips.toList().size() > 100);
 	}
 
-	@Test//(timeout = 30000)
+	@Test(timeout = 30000)
 	public void testQuery() {
 		ResultSet results = runSelect("SELECT * WHERE {?s ?p ?o.} LIMIT 10");
 		// Make sure a query for everything //actually executes//.

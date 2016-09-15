@@ -73,14 +73,14 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 	}
 
 	/** Naively matches against an iterable of triples */
-	protected QueryIterator chainTriples(List<Triple> triples,
+	protected static QueryIterator chainTriples(List<Triple> triples,
 			QueryIterator iter, ExecutionContext ctx) {
 		return QueryIterBlockTriples.create(iter, BasicPattern.wrap(triples),
 				ctx);
 	}
 
 	/** Intelligently handle <code>?var :concrete :concrete</code> blocks. */
-	protected class VariableBlockHandler extends QueryIterRepeatApply {
+	protected static class VariableBlockHandler extends QueryIterRepeatApply {
 		private ObservationGraph graph;
 		private List<Triple> triples;
 		Var newVar;
@@ -120,7 +120,7 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 
 	}
 
-	protected enum TripleBlockType {
+	protected static enum TripleBlockType {
 		VARIABLE_PATTERN_BLOCK, ARBITRARY_BLOCK
 	}
 
@@ -129,7 +129,7 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 	 * the form <code>?var :p :o</code> (i.e. variable, concrete, concrete) with
 	 * the same variable each time, or no triples are of that form.
 	 */
-	protected class TripleBlock {
+	protected static class TripleBlock {
 		public final List<Triple> pattern;
 		public TripleBlockType type;
 
@@ -146,7 +146,7 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 	 * assumes that the input list has been sorted so that such blocks appear
 	 * adjacent to one another.
 	 */
-	protected Iterable<TripleBlock> partitionBlocks(List<Triple> pattern) {
+	protected static List<TripleBlock> partitionBlocks(List<Triple> pattern) {
 		Node currentVar = null;
 		List<Triple> currentBlock = new ArrayList<>();
 		List<TripleBlock> allBlocks = new ArrayList<>();
@@ -169,6 +169,12 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 			} else {
 				// Not of the special "?var :concrete :concrete" form that we
 				// look for
+				if (currentVar != null && !currentBlock.isEmpty()) {
+					allBlocks.add(new TripleBlock(
+							TripleBlockType.VARIABLE_PATTERN_BLOCK,
+							currentBlock));
+					currentBlock = new ArrayList<>();
+				}
 				currentVar = null;
 				currentBlock.add(trip);
 			}
