@@ -15,8 +15,10 @@ import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingFactory;
 import org.apache.jena.sparql.engine.iterator.QueryIterRoot;
+import org.apache.jena.sparql.engine.iterator.QueryIterSingleton;
 import org.apache.jena.vocabulary.RDF;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -24,6 +26,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import anuled.dynamicstore.ObservationGraph;
+import anuled.dynamicstore.ObservationNode;
 import anuled.dynamicstore.TestData;
 import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.TripleBlock;
 import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.TripleBlockType;
@@ -131,12 +134,48 @@ public class ObservationGraphStageGeneratorTest {
 				ctx);
 		QueryIterator result = gen.execute(BasicPattern.wrap(Arrays.asList()),
 				root, ctx);
-		assertEquals(true, result.hasNext());
+		assertTrue(result.hasNext());
 		result.next();
-		assertEquals(false, result.hasNext());
+		assertFalse(result.hasNext());
 
-		// TODO: Actually test the *interesting* aspects of
-		// ObservationGraphStageGenerator!
+		// Just try to get a specific node this time
+		Var obsVar = Var.alloc("s");
+		List<Triple> pattern = Arrays.asList(
+				new Triple(obsVar, LED.dggsCell.asNode(),
+						JenaUtil.createLiteralNode("R78")),
+				new Triple(obsVar, RDF.type.asNode(), LED.Pixel.asNode()),
+				new Triple(obsVar, LED.etmBand.asNode(),
+						JenaUtil.createLiteralNode(3)));
+		root = QueryIterRoot.create(BindingFactory.binding(), ctx);
+		result = gen.execute(BasicPattern.wrap(pattern), root, ctx);
+		assertTrue(result.hasNext());
+		Binding outBinding = result.next();
+		assertTrue(outBinding.contains(obsVar));
+		Node outURI = outBinding.get(obsVar);
+		assertTrue(outURI.isURI());
+		assertTrue(outURI instanceof ObservationNode);
+		assertEquals(
+				"https://anulinkedearth.org/rdf/observation/2013/05/27/23/58/20/"
+						+ "cell/R78/levelSquare-3/levelPixel-3/band-3",
+				outURI.getURI());
+		assertFalse(result.hasNext());
+
+		// What happens when we have an existing node binding?
+		// If it's compatible with the results we have, we should still get a
+		// binding back...
+		root = QueryIterSingleton.create(BindingFactory.binding(obsVar, outURI),
+				ctx);
+		result = gen.execute(BasicPattern.wrap(pattern), root, ctx);
+		assertTrue(result.hasNext());
+		outBinding = result.next();
+		assertFalse(result.hasNext());
+		assertEquals(outURI, outBinding.get(obsVar));
+
+		// Otherwise, we should get nothing.
+		root = QueryIterSingleton.create(BindingFactory.binding(obsVar,
+				JenaUtil.createURINode("http://fake/")), ctx);
+		result = gen.execute(BasicPattern.wrap(pattern), root, ctx);
+		assertFalse(result.hasNext());
 	}
 
 }

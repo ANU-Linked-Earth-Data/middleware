@@ -91,24 +91,21 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 			super(input, context);
 			this.graph = graph;
 			this.triples = triples;
-			if (triples.isEmpty()) {
-				newVar = null;
-			} else {
-				Triple firstTrip = triples.get(0);
-				newVar = Var.alloc(firstTrip.getSubject());
-			}
+			assert !triples.isEmpty();
+			Triple firstTrip = triples.get(0);
+			Node subj = firstTrip.getSubject();
+			assert subj.isVariable();
+			newVar = Var.alloc(subj);
 		}
 
 		@Override
 		protected QueryIterator nextStage(Binding binding) {
-			if (newVar == null || binding.contains(newVar)) {
+			if (binding.contains(newVar)) {
+				// there's already a binding for the variable we care about in
+				// the parent (!!)
 				QueryIterator single = QueryIterSingleton.create(binding,
 						getExecContext());
-				if (newVar == null) {
-					return single;
-				} else {
-					return chainTriples(triples, single, getExecContext());
-				}
+				return chainTriples(triples, single, getExecContext());
 			}
 			// Don't worry about the cast! observationURIs returns a stream of
 			// ObservationNodes, and ObservationNode is a Node subclass.
@@ -210,10 +207,8 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 			case ARBITRARY_BLOCK:
 				finalIter = chainTriples(block.pattern, finalIter, execCtx);
 				break;
-			default:
-				throw new RuntimeException("Shouldn't get here :/");
 			}
 		}
-		return chainTriples(newTrips, input, execCtx);
+		return finalIter;
 	}
 }
