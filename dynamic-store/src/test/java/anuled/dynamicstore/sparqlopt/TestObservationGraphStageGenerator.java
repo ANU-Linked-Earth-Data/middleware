@@ -35,7 +35,7 @@ import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
 
 // I'm genuinely proud of the noun pile that is the name of this class.
-public class ObservationGraphStageGeneratorTest {
+public class TestObservationGraphStageGenerator {
 	private ObservationGraph graph;
 	private static TestData td;
 
