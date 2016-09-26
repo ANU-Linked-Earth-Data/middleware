@@ -3,7 +3,6 @@ package anuled.dynamicstore.sparqlopt;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.OpBGP;
 import org.apache.jena.sparql.algebra.op.OpFilter;
-import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.main.OpExecutor;
@@ -21,10 +20,10 @@ public class ObservationGraphOpExecutorFactory extends OpExecutor {
         if (base instanceof OpBGP) {
         	OpBGP baseBGP = (OpBGP) base;
             ExprList exprs = opFilter.getExprs();
-            BasicPattern newPattern = new FilteredBasicPattern(baseBGP.getPattern());
+            FilteredBasicPattern newPattern = new FilteredBasicPattern(baseBGP.getPattern());
+            newPattern.addExprList(exprs);
             OpBGP newBGP = new OpBGP(newPattern);
             OpFilter newFilter = OpFilter.filterDirect(exprs, newBGP);
-            assert false; // TODO: Finish implementing this method using FilteredBasicPattern
             return super.execute(newFilter, input);
         }
         return super.execute(opFilter, input);
