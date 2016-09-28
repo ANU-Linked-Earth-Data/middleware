@@ -22,22 +22,6 @@ public class InequalityConstraint {
 	Node left, right;
 	ConstraintType type;
 
-	public static enum ConstraintType {
-		// Either left < right or left <= right
-		LESS {
-			@Override
-			public String toString() {
-				return "<";
-			}
-		},
-		LESS_EQ {
-			@Override
-			public String toString() {
-				return "<=";
-			}
-		};
-	}
-
 	private static boolean nodeValid(Node node) {
 		return node.isLiteral() || node.isVariable();
 	}

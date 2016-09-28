@@ -120,7 +120,8 @@ public final class ObservationGraph extends GraphBase {
 	}
 
 	private Stream<Observation> getAllObservations() {
-		return reader.cells(null, null)
+		// So much null… I may be doing this wrong.
+		return reader.cells(null, null, null, null, null, null)
 				.flatMap(c -> c.observations(null, null));
 	}
 

@@ -45,8 +45,9 @@ public class TestHDF5Dataset {
 
 	@Test
 	public void testCellIterator() {
-		ds.cells(null, null).forEach(Assert::assertNotNull);
-		assertEquals(6, ds.cells(null, null).count());
+		ds.cells(null, null, null, null, null, null)
+				.forEach(Assert::assertNotNull);
+		assertEquals(6, ds.cells(null, null, null, null, null, null).count());
 	}
 
 	@Test
@@ -105,6 +106,18 @@ public class TestHDF5Dataset {
 		assertArrayEquals(reqPixel, cell.pixelData(), 1e-1);
 		byte[] td = cell.tileData(3);
 		isPNG(td);
+
+		/*
+		 * Real cell bounds (approx): [148.89, -34.66], [150.00, -34.66],
+		 * [150.00, -35.82], [148.89, -35.82], [148.89, -34.66]
+		 * 
+		 * Latitude is in [-35.82, -34.66], longitude is in [148.89, 150.00]
+		 */
+		assertTrue(cell.inRect(null, null, null, null));
+		assertTrue(cell.inRect(null, 151.0, -35.83, null));
+		assertFalse(cell.inRect(null, 149.0, -35.0, null));
+		assertTrue(cell.inRect(148.88, 150.1, -35.83, -34.65));
+		assertFalse(cell.inRect(20.0, 10.0, 5.0, 3.0));
 	}
 
 	@Test

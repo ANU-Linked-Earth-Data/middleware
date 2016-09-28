@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import ch.systemsx.cisd.hdf5.HDF5Factory;
@@ -102,14 +103,20 @@ public class HDF5Dataset {
 	 *            DGGS ID for the cell (e.g. R78523).
 	 * @throws Exception
 	 */
-	public Stream<Cell> cells(Integer cellLevel, String cellID) {
+	public Stream<Cell> cells(Integer cellLevel, String cellID, Double lonMin,
+			Double lonMax, Double latMin, Double latMax) {
+		// TODO: Use implicit rHEALPix tree to speed up this search. Doing it
+		// this way doesn't make sense when there are many qb:Observations.
+		Predicate<Cell> inRect = cell -> cell.inRect(lonMin, lonMax, latMin,
+				latMax);
+
 		// If a cell ID was specified, use it
 		if (cellID != null) {
 			// Having the wrong cell level makes us return nothing
 			if (cellLevel == null || cellLevel.equals(cellID.length())) {
 				Cell theCell = cellsByID.get(cellID);
 				if (theCell != null) {
-					return Stream.of(theCell);
+					return Stream.of(theCell).filter(inRect);
 				}
 			}
 			return Stream.of();
@@ -120,13 +127,14 @@ public class HDF5Dataset {
 		if (cellLevel != null) {
 			Collection<Cell> theCells = cellsByLevel.get(cellLevel);
 			if (theCells != null) {
-				return theCells.stream();
+				return theCells.stream().filter(inRect);
 			}
 			return Stream.of();
 		}
 
 		// If no constraints were specified, return all cells
-		return cellsByLevel.values().stream().flatMap(l -> l.stream());
+		return cellsByLevel.values().stream().flatMap(l -> l.stream())
+				.filter(inRect);
 	}
 
 	/**

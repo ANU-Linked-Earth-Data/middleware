@@ -8,6 +8,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.graph.Node;
+
 import anuled.dynamicstore.backend.Cell;
 import anuled.dynamicstore.backend.HDF5Dataset;
 import anuled.dynamicstore.backend.Observation;
@@ -25,6 +26,10 @@ public class ObservationFilter {
 	String reqCellID = null;
 	Integer reqBandNum = null;
 	Integer reqLevel = null;
+	Double latMin = null;
+	Double latMax = null;
+	Double lonMin = null;
+	Double lonMax = null;
 	Class<?> reqClass = null;
 	// set empty = true when there are no matching observations
 	boolean empty = false;
@@ -38,7 +43,8 @@ public class ObservationFilter {
 	public void constrainProperty(String propURI, Node expectedValue) {
 		// Expected value must be URL/literal/blank
 		assert expectedValue.isConcrete();
-		Optional<ObservationProperty> maybeProp = PropertyIndex.getProperty(propURI);
+		Optional<ObservationProperty> maybeProp = PropertyIndex
+				.getProperty(propURI);
 		if (!maybeProp.isPresent()) {
 			constrainImpossibly();
 		} else {
@@ -79,6 +85,22 @@ public class ObservationFilter {
 		}
 	}
 
+	public void constrainLatMax(double latMax) {
+		this.latMax = latMax;
+	}
+
+	public void constrainLatMin(double latMin) {
+		this.latMin = latMin;
+	}
+
+	public void constrainLonMax(double lonMax) {
+		this.lonMax = lonMax;
+	}
+
+	public void constrainLonMin(double lonMin) {
+		this.lonMin = lonMin;
+	}
+
 	public void constrainToPixel() {
 		constrainType(PixelObservation.class);
 	}
@@ -101,7 +123,8 @@ public class ObservationFilter {
 		if (empty) {
 			return Stream.of();
 		} else {
-			Stream<Cell> cells = dataset.cells(reqLevel, reqCellID);
+			Stream<Cell> cells = dataset.cells(reqLevel, reqCellID, latMin,
+					latMax, lonMin, lonMax);
 			Stream<Observation> observations = cells
 					.flatMap(c -> c.observations(reqBandNum, reqClass))
 					.filter(o -> {

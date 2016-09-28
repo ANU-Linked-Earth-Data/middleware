@@ -12,8 +12,6 @@ import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.sparql.core.Var;
 import org.junit.Test;
 
-import anuled.dynamicstore.sparqlopt.InequalityConstraint.ConstraintType;
-
 public class TestInequalityConstraint {
 	Node uriNode = createURINode("http://fake/");
 	Node blankNode = NodeFactory.createBlankNode();
