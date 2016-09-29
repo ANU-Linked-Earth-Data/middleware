@@ -27,7 +27,8 @@ public class PropertyIndex {
 				DGGSLevelSquareProperty.class, ImageDataProperty.class,
 				LatProperty.class, LongProperty.class, PixelValueProperty.class,
 				RDFTypeProperty.class, ResolutionProperty.class,
-				TimeProperty.class);
+				TimeProperty.class, LatMinProperty.class, LatMaxProperty.class,
+				LongMinProperty.class, LongMaxProperty.class);
 		toRegister.forEach(cls -> {
 			ObservationProperty inst;
 			try {

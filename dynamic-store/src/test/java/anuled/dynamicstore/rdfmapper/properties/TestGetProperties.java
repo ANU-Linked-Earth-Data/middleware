@@ -194,4 +194,13 @@ public class TestGetProperties {
 						.getTimestamp().toZonedDateTime()),
 				getProp(LED.time, pxObs));
 	}
+	
+	@Test
+	public void testMBR() {
+		// test minimum bounding rectangle properties
+		assertNodeListIsEqual(-35.8186, getProp(LED.latMin, tlObs), 1e-1);
+		assertNodeListIsEqual(-34.6638, getProp(LED.latMax, tlObs), 1e-1);
+		assertNodeListIsEqual(148.889, getProp(LED.longMin, tlObs), 1e-2);
+		assertNodeListIsEqual(150.0, getProp(LED.longMax, tlObs), 1e-2);
+	}
 }

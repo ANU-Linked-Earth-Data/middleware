@@ -22,7 +22,7 @@ public class Cell {
 	private int tileSize;
 	private short invalidValue;
 	private List<List<Double>> bounds;
-	private double latMin, latMax, lonMin, lonMax;
+	private double latMin, latMax, longMin, longMax;
 	private double degreesSpanned;
 	HDF5Dataset owner;
 
@@ -67,8 +67,8 @@ public class Cell {
 		// We need at least four coordinates to make a non-degenerate shape
 		assert allBounds.length >= 4;
 		bounds = new ArrayList<List<Double>>();
-		latMin = lonMin = Double.POSITIVE_INFINITY;
-		latMax = lonMax = Double.NEGATIVE_INFINITY;
+		latMin = longMin = Double.POSITIVE_INFINITY;
+		latMax = longMax = Double.NEGATIVE_INFINITY;
 		for (int row = 0; row < allBounds.length; row++) {
 			List<Double> pair = new ArrayList<Double>(2);
 			double[] thisRow = allBounds[row];
@@ -81,12 +81,12 @@ public class Cell {
 
 			latMin = Math.min(latMin, lat);
 			latMax = Math.max(latMax, lat);
-			lonMin = Math.min(lonMin, lon);
-			lonMax = Math.max(lonMax, lon);
+			longMin = Math.min(longMin, lon);
+			longMax = Math.max(longMax, lon);
 		}
 
 		// This will be used for resolution calculation
-		degreesSpanned = (latMax - latMin + lonMax - lonMin) / 2;
+		degreesSpanned = (latMax - latMin + longMax - longMin) / 2;
 
 		/*
 		 * Other attributes to extract (if needed): lat (f64), lon (f64)
@@ -127,8 +127,8 @@ public class Cell {
 	 */
 	public boolean inRect(Double lonMin, Double lonMax, Double latMin,
 			Double latMax) {
-		return (lonMin == null || this.lonMin >= lonMin)
-				&& (lonMax == null || this.lonMax <= lonMax)
+		return (lonMin == null || this.longMin >= lonMin)
+				&& (lonMax == null || this.longMax <= lonMax)
 				&& (latMin == null || this.latMin >= latMin)
 				&& (latMax == null || this.latMax <= latMax);
 	}
@@ -227,6 +227,22 @@ public class Cell {
 	/** Get the longitude of the centre of the cell */
 	public double getLon() {
 		return centre[0];
+	}
+
+	public double getLatMin() {
+		return latMin;
+	}
+
+	public double getLatMax() {
+		return latMax;
+	}
+
+	public double getLongMin() {
+		return longMin;
+	}
+
+	public double getLongMax() {
+		return longMax;
 	}
 
 	@Override

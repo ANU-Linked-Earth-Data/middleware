@@ -31,6 +31,10 @@ public class LED extends AbstractVocabulary {
 	public static final Property dggsLevelSquare = property("dggsLevelSquare");
 	public static final Property dggsLevelPixel = property("dggsLevelPixel");
 	public static final Property etmBand = property("etmBand");
+	public static final Property latMin = property("latMin");
+	public static final Property latMax = property("latMax");
+	public static final Property longMin = property("longMin");
+	public static final Property longMax = property("longMax");
 	
 	// These are for Jena and the middleware
 	public static final Property uriPrefix = property("uriPrefix");
