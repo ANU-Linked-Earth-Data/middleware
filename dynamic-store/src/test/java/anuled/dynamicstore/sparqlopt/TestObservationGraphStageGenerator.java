@@ -29,7 +29,6 @@ import anuled.dynamicstore.ObservationGraph;
 import anuled.dynamicstore.ObservationNode;
 import anuled.dynamicstore.TestData;
 import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.TripleBlock;
-import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.TripleBlockType;
 import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
@@ -72,7 +71,7 @@ public class TestObservationGraphStageGenerator {
 		Triple[] unordered = { expected[2], expected[1], expected[4],
 				expected[0], expected[3] };
 		Arrays.sort(unordered,
-				new ObservationGraphStageGenerator.TripleComparator());
+				new TripleComparator());
 		assertEquals(expected.length, unordered.length);
 		for (int i = 0; i < unordered.length; i++) {
 			assertEquals(expected[i], unordered[i]);

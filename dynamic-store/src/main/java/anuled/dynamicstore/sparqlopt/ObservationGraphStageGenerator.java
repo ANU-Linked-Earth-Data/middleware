@@ -1,22 +1,16 @@
 package anuled.dynamicstore.sparqlopt;
 
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.core.BasicPattern;
-import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
-import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.iterator.QueryIterBlockTriples;
-import org.apache.jena.sparql.engine.iterator.QueryIterExtendByVar;
-import org.apache.jena.sparql.engine.iterator.QueryIterRepeatApply;
-import org.apache.jena.sparql.engine.iterator.QueryIterSingleton;
 import org.apache.jena.sparql.engine.main.StageGenerator;
 
 import anuled.dynamicstore.ObservationGraph;
@@ -35,90 +29,11 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 		this.nextStage = nextStage;
 	}
 
-	/**
-	 * Comparator which orders triples by subject, then object, then predicate.
-	 * Sub-ordering is by whether node is concrete (in which case it comes
-	 * first), then by variable name (if applicable).
-	 */
-	protected static class TripleComparator implements Comparator<Triple> {
-		protected int compareNode(Node left, Node right) {
-			if (left.isConcrete() && !right.isConcrete()) {
-				// put left node first
-				return -1;
-			} else if (!left.isConcrete() && right.isConcrete()) {
-				// put right node first
-				return 1;
-			}
-			if (left.isVariable() && right.isVariable()) {
-				// first node is the one that comes first lexicographically
-				return left.getName().compareTo(right.getName());
-			}
-			// we don't care how nodes are ordered
-			return 0;
-		}
-
-		@Override
-		public int compare(Triple left, Triple right) {
-			int subjCmp = compareNode(left.getSubject(), right.getSubject());
-			if (subjCmp != 0) {
-				return subjCmp;
-			}
-			int predCmp = compareNode(left.getPredicate(),
-					right.getPredicate());
-			if (predCmp != 0) {
-				return predCmp;
-			}
-			return compareNode(left.getObject(), right.getObject());
-		}
-	}
-
 	/** Naively matches against an iterable of triples */
 	protected static QueryIterator chainTriples(List<Triple> triples,
 			QueryIterator iter, ExecutionContext ctx) {
 		return QueryIterBlockTriples.create(iter, BasicPattern.wrap(triples),
 				ctx);
-	}
-
-	/** Intelligently handle <code>?var :concrete :concrete</code> blocks. */
-	protected static class VariableBlockHandler extends QueryIterRepeatApply {
-		private ObservationGraph graph;
-		private List<Triple> triples;
-		Var newVar;
-
-		public VariableBlockHandler(QueryIterator input,
-				ExecutionContext context, List<Triple> triples,
-				ObservationGraph graph) {
-			super(input, context);
-			this.graph = graph;
-			this.triples = triples;
-			assert !triples.isEmpty();
-			Triple firstTrip = triples.get(0);
-			Node subj = firstTrip.getSubject();
-			assert subj.isVariable();
-			newVar = Var.alloc(subj);
-		}
-
-		@Override
-		protected QueryIterator nextStage(Binding binding) {
-			if (binding.contains(newVar)) {
-				// there's already a binding for the variable we care about in
-				// the parent (!!)
-				QueryIterator single = QueryIterSingleton.create(binding,
-						getExecContext());
-				return chainTriples(triples, single, getExecContext());
-			}
-			// Don't worry about the cast! observationURIs returns a stream of
-			// ObservationNodes, and ObservationNode is a Node subclass.
-			Iterator<Node> obsURIBindings = graph.observationURIs(triples)
-					.map(n -> (Node) n).iterator();
-			return new QueryIterExtendByVar(binding, newVar, obsURIBindings,
-					getExecContext());
-		}
-
-	}
-
-	protected static enum TripleBlockType {
-		VARIABLE_PATTERN_BLOCK, ARBITRARY_BLOCK
 	}
 
 	/**
@@ -192,7 +107,17 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 		if (!(graph instanceof ObservationGraph)) {
 			return nextStage.execute(pattern, input, execCtx);
 		}
+
+		// Java almost has first class functions. Almost :(
+		ConstraintFunction constraintsOn;
+		if (pattern instanceof FilteredBasicPattern) {
+			constraintsOn = ((FilteredBasicPattern) pattern)::constraintsOn;
+		} else {
+			constraintsOn = v -> Collections.emptySet();
+		}
+
 		ObservationGraph obsGraph = (ObservationGraph) graph;
+
 		ArrayList<Triple> newTrips = new ArrayList<>();
 		newTrips.addAll(pattern.getList());
 		newTrips.sort(new TripleComparator());
@@ -202,7 +127,7 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 			switch (block.type) {
 			case VARIABLE_PATTERN_BLOCK:
 				finalIter = new VariableBlockHandler(finalIter, execCtx,
-						block.pattern, obsGraph);
+						block.pattern, obsGraph, constraintsOn);
 				break;
 			case ARBITRARY_BLOCK:
 				finalIter = chainTriples(block.pattern, finalIter, execCtx);
