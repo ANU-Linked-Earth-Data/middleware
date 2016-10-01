@@ -19,12 +19,15 @@ import anuled.dynamicstore.ObservationGraph;
 class VariableBlockHandler extends QueryIterRepeatApply {
 	ObservationGraph graph;
 	List<Triple> triples;
-	ConstraintFunction constraintsOn;
+	// Set<InequalityConstraint> subjectConstraints;
 	Var newVar;
 
-	public VariableBlockHandler(QueryIterator input,
-			ExecutionContext context, List<Triple> triples,
-			ObservationGraph graph, ConstraintFunction constraintsOn) {
+	public VariableBlockHandler(QueryIterator input, ExecutionContext context,
+			List<Triple> triples,
+			ObservationGraph graph /*
+									 * , Set<InequalityConstraint>
+									 * subjectConstraints
+									 */ ) {
 		super(input, context);
 		this.graph = graph;
 		this.triples = triples;
@@ -33,7 +36,10 @@ class VariableBlockHandler extends QueryIterRepeatApply {
 		Node subj = firstTrip.getSubject();
 		assert subj.isVariable();
 		newVar = Var.alloc(subj);
-		this.constraintsOn = constraintsOn;
+		// We're not obligated to honour constraints (they'll be caught in a
+		// filter even if we don't), but we are allowed to use constraints to
+		// whittle down the space of subjects we generate.
+		// this.subjectConstraints = subjectConstraints;
 	}
 
 	@Override
@@ -43,10 +49,12 @@ class VariableBlockHandler extends QueryIterRepeatApply {
 			// the parent (!!)
 			QueryIterator single = QueryIterSingleton.create(binding,
 					getExecContext());
-			return ObservationGraphStageGenerator.chainTriples(triples, single, getExecContext());
+			return ObservationGraphStageGenerator.chainTriples(triples, single,
+					getExecContext());
 		}
 		// Don't worry about the cast! observationURIs returns a stream of
 		// ObservationNodes, and ObservationNode is a Node subclass.
+		// TODO: Pass in inequality constraints as well.
 		Iterator<Node> obsURIBindings = graph.observationURIs(triples)
 				.map(n -> (Node) n).iterator();
 		return new QueryIterExtendByVar(binding, newVar, obsURIBindings,

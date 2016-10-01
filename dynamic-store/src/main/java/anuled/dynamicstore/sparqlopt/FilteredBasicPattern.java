@@ -10,7 +10,7 @@ import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.expr.Expr;
 import org.apache.jena.sparql.expr.ExprList;
 
-public class FilteredBasicPattern extends BasicPattern {
+class FilteredBasicPattern extends BasicPattern {
 	private Map<Var, Set<InequalityConstraint>> exprsForVar = new HashMap<>();
 
 	public FilteredBasicPattern(BasicPattern original) {

@@ -22,4 +22,14 @@ public interface ObservationProperty {
 	public default void applyToFilter(ObservationFilter filter, Node value) {
 		filter.constrainNaively(this, value);
 	}
+
+	/**
+	 * Some URIs are internal to the middleware (e.g.
+	 * <code>LatLonBoxProperty</code>). We don't want those used to generate
+	 * bindings which are sent back to the user (for example), so we mark them
+	 * as internal.
+	 */
+	public default boolean isInternal() {
+		return false;
+	}
 }

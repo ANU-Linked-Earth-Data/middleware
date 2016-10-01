@@ -90,7 +90,7 @@ public final class ObservationGraph extends GraphBase {
 		}
 
 		// Return triples associated with every predicate
-		return PropertyIndex.propertyURIs().stream().flatMap(propURI -> {
+		return PropertyIndex.externalPropertyURIs().stream().flatMap(propURI -> {
 			Node propNode = JenaUtil.createURINode(propURI);
 			ObservationProperty prop = PropertyIndex.getProperty(propURI).get();
 			Stream<Node> propVals = prop.valuesForObservation(obs,

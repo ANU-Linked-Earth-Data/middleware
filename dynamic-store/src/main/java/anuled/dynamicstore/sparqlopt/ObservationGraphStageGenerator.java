@@ -1,7 +1,6 @@
 package anuled.dynamicstore.sparqlopt;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.jena.graph.Graph;
@@ -109,12 +108,12 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 		}
 
 		// Java almost has first class functions. Almost :(
-		ConstraintFunction constraintsOn;
+/*		ConstraintFunction constraintsOn;
 		if (pattern instanceof FilteredBasicPattern) {
 			constraintsOn = ((FilteredBasicPattern) pattern)::constraintsOn;
 		} else {
 			constraintsOn = v -> Collections.emptySet();
-		}
+		}*/
 
 		ObservationGraph obsGraph = (ObservationGraph) graph;
 
@@ -127,7 +126,7 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 			switch (block.type) {
 			case VARIABLE_PATTERN_BLOCK:
 				finalIter = new VariableBlockHandler(finalIter, execCtx,
-						block.pattern, obsGraph, constraintsOn);
+						block.pattern, obsGraph);
 				break;
 			case ARBITRARY_BLOCK:
 				finalIter = chainTriples(block.pattern, finalIter, execCtx);

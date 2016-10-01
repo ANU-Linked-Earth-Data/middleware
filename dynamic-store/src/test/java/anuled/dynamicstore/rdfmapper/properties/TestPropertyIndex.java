@@ -29,7 +29,7 @@ public class TestPropertyIndex {
 
 	@Test
 	public void testPropertyStream() {
-		Set<String> allProps = PropertyIndex.propertyURIs();
+		Set<String> allProps = PropertyIndex.externalPropertyURIs();
 		assertEquals(17, allProps.size());
 		assertTrue(allProps.contains(LED.etmBand.getURI()));
 	}

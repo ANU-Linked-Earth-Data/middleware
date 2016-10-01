@@ -1,6 +1,6 @@
 package anuled.dynamicstore.sparqlopt;
 
-public enum ConstraintType {
+enum ConstraintType {
 	// Either left < right or left <= right
 	LESS {
 		@Override
