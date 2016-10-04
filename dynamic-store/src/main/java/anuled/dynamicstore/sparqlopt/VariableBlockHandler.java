@@ -19,15 +19,11 @@ import anuled.dynamicstore.ObservationGraph;
 class VariableBlockHandler extends QueryIterRepeatApply {
 	ObservationGraph graph;
 	List<Triple> triples;
-	// Set<InequalityConstraint> subjectConstraints;
 	Var newVar;
 
 	public VariableBlockHandler(QueryIterator input, ExecutionContext context,
 			List<Triple> triples,
-			ObservationGraph graph /*
-									 * , Set<InequalityConstraint>
-									 * subjectConstraints
-									 */ ) {
+			ObservationGraph graph) {
 		super(input, context);
 		this.graph = graph;
 		this.triples = triples;
@@ -36,10 +32,6 @@ class VariableBlockHandler extends QueryIterRepeatApply {
 		Node subj = firstTrip.getSubject();
 		assert subj.isVariable();
 		newVar = Var.alloc(subj);
-		// We're not obligated to honour constraints (they'll be caught in a
-		// filter even if we don't), but we are allowed to use constraints to
-		// whittle down the space of subjects we generate.
-		// this.subjectConstraints = subjectConstraints;
 	}
 
 	@Override
@@ -54,7 +46,6 @@ class VariableBlockHandler extends QueryIterRepeatApply {
 		}
 		// Don't worry about the cast! observationURIs returns a stream of
 		// ObservationNodes, and ObservationNode is a Node subclass.
-		// TODO: Pass in inequality constraints as well.
 		Iterator<Node> obsURIBindings = graph.observationURIs(triples)
 				.map(n -> (Node) n).iterator();
 		return new QueryIterExtendByVar(binding, newVar, obsURIBindings,

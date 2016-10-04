@@ -1,18 +1,35 @@
 package anuled.dynamicstore.sparqlopt;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
 
+import org.apache.commons.collections4.Transformer;
+import org.apache.commons.collections4.map.DefaultedMap;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.core.BasicPattern;
+import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.iterator.QueryIterBlockTriples;
 import org.apache.jena.sparql.engine.main.StageGenerator;
 
 import anuled.dynamicstore.ObservationGraph;
+import anuled.dynamicstore.rdfmapper.properties.LatLonBoxProperty.BoundType;
+import anuled.dynamicstore.rdfmapper.properties.LatMaxProperty;
+import anuled.dynamicstore.rdfmapper.properties.LatMinProperty;
+import anuled.dynamicstore.rdfmapper.properties.LongMaxProperty;
+import anuled.dynamicstore.rdfmapper.properties.LongMinProperty;
+import anuled.dynamicstore.rdfmapper.properties.ObservationProperty;
+import anuled.dynamicstore.rdfmapper.properties.PropertyIndex;
+import anuled.dynamicstore.util.JenaUtil;
 
 /**
  * Jena <code>StageGenerator</code> which handles BGP matching for
@@ -48,6 +65,147 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 			this.type = type;
 			this.pattern = pattern;
 		}
+	}
+
+	/** typedef to clean up some code below */
+	protected static class PropertyMapping
+			extends DefaultedMap<Pair<Var, ObservationProperty>, Set<Var>> {
+		private static final long serialVersionUID = 6122053846597081334L;
+
+		public PropertyMapping(
+				Transformer<? super Pair<Var, ObservationProperty>, ? extends Set<Var>> defaultValueTransformer) {
+			super(defaultValueTransformer);
+		}
+	}
+
+	/**
+	 * Scans for triples of the form </code>?s led:* ?o</code>. Will produce a
+	 * map from subjects to another map, which in turn maps from properties to
+	 * objects.
+	 * 
+	 * This process is mainly useful when there's an enclosing
+	 * <code>FILTER()</code> which is trying to add a bounding box constraint to
+	 * the query. In that case, the middleware is interested in cases where the
+	 * predicate is <code>led:{lat,long}{Min,Max}</code>.
+	 */
+	protected static PropertyMapping associatedProperties(List<Triple> triples) {
+		PropertyMapping rv = new PropertyMapping(k -> new HashSet<>());
+		for (Triple t : triples) {
+			Node subjNode = t.getSubject();
+			if (!subjNode.isVariable()) {
+				continue;
+			}
+			Var subjVar = (Var) subjNode;
+
+			Node predNode = t.getPredicate();
+			if (!predNode.isURI()) {
+				continue;
+			}
+			Optional<ObservationProperty> optProp = PropertyIndex
+					.getProperty(predNode.getURI());
+			if (!optProp.isPresent()) {
+				continue;
+			}
+			ObservationProperty prop = optProp.get();
+
+			Node objNode = t.getObject();
+			if (!objNode.isVariable()) {
+				continue;
+			}
+			Var objVar = (Var) objNode;
+
+			Pair<Var, ObservationProperty> key = Pair.of(subjVar, prop);
+			rv.get(key).add(objVar);
+		}
+		return rv;
+	}
+
+	protected static Optional<Triple> constraintToTriple(
+			InequalityConstraint constraint, Var var,
+			ObservationProperty prop) {
+		if (constraint.leftIsVar() && constraint.rightIsVar()) {
+			// Can't do anything for var/var bindings.
+			// TODO: Should be able to take a binding to resolve problems
+			// like this (potentially).
+			return Optional.empty();
+		}
+
+		// check whether the given property is measuring lat or lon
+		boolean isLat;
+		if (prop instanceof LatMaxProperty || prop instanceof LatMinProperty) {
+			isLat = true;
+		} else if (prop instanceof LongMaxProperty
+				|| prop instanceof LongMinProperty) {
+			isLat = false;
+		} else {
+			return Optional.empty();
+		}
+		// check whether the given property is measuring min or max
+		boolean propIsMax = prop instanceof LatMaxProperty
+				|| prop instanceof LongMaxProperty;
+
+		boolean constraintIsMax;
+		Node constraintNode;
+		if (constraint.leftIsVar()) {
+			// var <= constant; we need a maximum (upper bound) constraint
+			assert var.equals(constraint.leftVar());
+			constraintIsMax = true;
+			constraintNode = constraint.getRight();
+		} else {
+			// constant <= var; we need a minimum (lower bound) constraint
+			assert var.equals(constraint.rightVar());
+			// Triple constraint = new
+			// Triple(LatLonBoxProperty.BoundType.BoxBottom)
+			constraintIsMax = false;
+			constraintNode = constraint.getRight();
+		}
+
+		// we can only upper bound maximum properties (LatMax, LongMax) and
+		// lower bound minimum properties (LatMin, LongMin); if we're asked to
+		// do anything else, we'll have to return Optional.empty()
+		if (propIsMax != constraintIsMax) {
+			return Optional.empty();
+		}
+
+		// Now we can actually create the LatLonBoxProperty
+		BoundType type;
+		if (constraintIsMax) {
+			if (isLat) {
+				type = BoundType.BoxTop;
+			} else {
+				type = BoundType.BoxRight;
+			}
+		} else {
+			if (isLat) {
+				type = BoundType.BoxBottom;
+			} else {
+				type = BoundType.BoxLeft;
+			}
+		}
+		return Optional.of(new Triple(var,
+				JenaUtil.createURINode(type.getURI()), constraintNode));
+	}
+
+	/**
+	 * Generate constraints (presumably from a higher-level <code>FILTER</code>)
+	 * for a triple pattern. Constraints are encoded as new triples so that
+	 * <code>VariableBlockHandler</code> can handle them transparently.
+	 */
+	protected static List<Triple> makeNewConstraints(PropertyMapping propMap,
+			ConstraintFunction constraintsOn) {
+		List<Triple> rv = new ArrayList<>();
+		for (Entry<Pair<Var, ObservationProperty>, Set<Var>> entry : propMap
+				.entrySet()) {
+			Pair<Var, ObservationProperty> key = entry.getKey();
+			for (Var otherVar : entry.getValue()) {
+				for (InequalityConstraint constraint : constraintsOn
+						.apply(otherVar)) {
+					constraintToTriple(constraint, key.getLeft(),
+							key.getRight()).ifPresent(trip -> rv.add(trip));
+				}
+			}
+		}
+		return rv;
 	}
 
 	/**
@@ -108,18 +266,26 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 		}
 
 		// Java almost has first class functions. Almost :(
-/*		ConstraintFunction constraintsOn;
+		ConstraintFunction constraintsOn;
 		if (pattern instanceof FilteredBasicPattern) {
 			constraintsOn = ((FilteredBasicPattern) pattern)::constraintsOn;
 		} else {
 			constraintsOn = v -> Collections.emptySet();
-		}*/
+		}
 
 		ObservationGraph obsGraph = (ObservationGraph) graph;
 
+		PropertyMapping propMap = associatedProperties(pattern.getList());
+		List<Triple> extraConstraints = makeNewConstraints(propMap,
+				constraintsOn);
+
+		// choose a sane triple ordering; this is required by the
+		// partitionBlocks function
 		ArrayList<Triple> newTrips = new ArrayList<>();
 		newTrips.addAll(pattern.getList());
+		newTrips.addAll(extraConstraints);
 		newTrips.sort(new TripleComparator());
+
 		QueryIterator finalIter = input;
 		for (TripleBlock block : partitionBlocks(newTrips)) {
 			assert block.pattern.size() > 0;
