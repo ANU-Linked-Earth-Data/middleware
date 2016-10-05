@@ -9,7 +9,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.commons.collections4.Transformer;
 import org.apache.commons.collections4.map.LazyMap;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.graph.Graph;
@@ -71,9 +70,8 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 	/** typedef to clean up some code below */
 	protected static class PropertyMapping
 			extends LazyMap<Pair<Var, ObservationProperty>, Set<Var>> {
-		protected PropertyMapping(
-				Transformer<? super Pair<Var, ObservationProperty>, ? extends Set<Var>> factory) {
-			super(new HashMap<>(), factory);
+		protected PropertyMapping() {
+			super(new HashMap<>(), k -> new HashSet<>());
 		}
 
 		private static final long serialVersionUID = 6122053846597081334L;
@@ -91,7 +89,7 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 	 */
 	protected static PropertyMapping associatedProperties(
 			List<Triple> triples) {
-		PropertyMapping rv = new PropertyMapping(k -> new HashSet<>());
+		PropertyMapping rv = new PropertyMapping();
 		for (Triple t : triples) {
 			Node subjNode = t.getSubject();
 			if (!subjNode.isVariable()) {
@@ -122,15 +120,28 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 		return rv;
 	}
 
+	/**
+	 * Converts inequality constraints on an observation property to a triple
+	 * constraining the corresponding subject. Example: if you have an
+	 * inequality constraint of the form <code>?v < 42</code>, and a triple
+	 * pattern of the form <code>?s led:latMax ?v</code>, you might call
+	 * <code>constraintToTriple(?v < 13, ?s, LatMaxProperty)</code>.
+	 * 
+	 * Note that the var in the constraint may be different from the var passed
+	 * explicitly: the explicitly passed var should be the subject of the
+	 * <code>?s :prop ?v</code> triple, and the var in the inequality constraint
+	 * will likely be the object (which can be constrained with a filter).
+	 */
 	protected static Optional<Triple> constraintToTriple(
 			InequalityConstraint constraint, Var var,
 			ObservationProperty prop) {
-		if (constraint.leftIsVar() && constraint.rightIsVar()) {
-			// Can't do anything for var/var bindings.
+		if (!(constraint.leftIsVar() ^ constraint.rightIsVar())) {
+			// Can't do anything for var/var or const/const bindings.
 			// TODO: Should be able to take a binding to resolve problems
 			// like this (potentially).
 			return Optional.empty();
 		}
+		// TODO: Log warning if the thing above isn't true.
 
 		// check whether the given property is measuring lat or lon
 		boolean isLat;
@@ -150,16 +161,13 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 		Node constraintNode;
 		if (constraint.leftIsVar()) {
 			// var <= constant; we need a maximum (upper bound) constraint
-			assert var.equals(constraint.leftVar());
 			constraintIsMax = true;
 			constraintNode = constraint.getRight();
 		} else {
 			// constant <= var; we need a minimum (lower bound) constraint
-			assert var.equals(constraint.rightVar());
-			// Triple constraint = new
-			// Triple(LatLonBoxProperty.BoundType.BoxBottom)
+			assert constraint.rightIsVar();
 			constraintIsMax = false;
-			constraintNode = constraint.getRight();
+			constraintNode = constraint.getLeft();
 		}
 
 		// we can only upper bound maximum properties (LatMax, LongMax) and
@@ -184,6 +192,7 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 				type = BoundType.BoxLeft;
 			}
 		}
+
 		return Optional.of(new Triple(var,
 				JenaUtil.createURINode(type.getURI()), constraintNode));
 	}

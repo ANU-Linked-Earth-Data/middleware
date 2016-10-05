@@ -1,5 +1,7 @@
 package anuled.dynamicstore.sparqlopt;
 
+import static anuled.dynamicstore.rdfmapper.properties.LatLonBoxProperty.BoundType.*;
+import static anuled.dynamicstore.sparqlopt.ConstraintType.*;
 import static anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.*;
 import static anuled.dynamicstore.util.JenaUtil.*;
 import static org.apache.jena.graph.NodeFactory.*;
@@ -9,7 +11,9 @@ import static org.mockito.Mockito.*;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -27,12 +31,16 @@ import org.apache.jena.vocabulary.RDF;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import anuled.dynamicstore.ObservationGraph;
 import anuled.dynamicstore.ObservationNode;
 import anuled.dynamicstore.TestData;
+import anuled.dynamicstore.rdfmapper.properties.BandProperty;
+import anuled.dynamicstore.rdfmapper.properties.LatMaxProperty;
+import anuled.dynamicstore.rdfmapper.properties.LatMinProperty;
+import anuled.dynamicstore.rdfmapper.properties.LongMaxProperty;
+import anuled.dynamicstore.rdfmapper.properties.LongMinProperty;
 import anuled.dynamicstore.rdfmapper.properties.ObservationProperty;
 import anuled.dynamicstore.rdfmapper.properties.PropertyIndex;
 import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.PropertyMapping;
@@ -45,6 +53,9 @@ import anuled.vocabulary.QB;
 public class TestObservationGraphStageGenerator {
 	private ObservationGraph graph;
 	private static TestData td;
+	ObservationProperty latMinProp, latMaxProp, longMinProp, longMaxProp,
+			irrelevantProp;
+	Node boxBottom, boxTop, boxLeft, boxRight;
 
 	@BeforeClass
 	public static void setUpClass() throws IOException {
@@ -59,6 +70,15 @@ public class TestObservationGraphStageGenerator {
 	@Before
 	public void setUp() throws Exception {
 		graph = new ObservationGraph(td.getPath(), "http://example.com/fakeDS");
+		latMinProp = new LatMinProperty();
+		latMaxProp = new LatMaxProperty();
+		longMinProp = new LongMinProperty();
+		longMaxProp = new LongMaxProperty();
+		irrelevantProp = new BandProperty();
+		boxBottom = createURINode(BoxBottom.getURI());
+		boxTop = createURINode(BoxTop.getURI());
+		boxLeft = createURINode(BoxLeft.getURI());
+		boxRight = createURINode(BoxRight.getURI());
 	}
 
 	@Test
@@ -214,15 +234,88 @@ public class TestObservationGraphStageGenerator {
 		assertEquals(1, props.get(Pair.of(v3, toProp.apply(uri2))).size());
 	}
 
-	@Ignore("TODO")
 	@Test
 	public void testConstraintToTriple() {
-		fail("TODO");
+		Var v1 = Var.alloc("v1"), v2 = Var.alloc("v2"), v3 = Var.alloc("v3");
+		Node const1 = createLiteralNode(42), const2 = createLiteralNode(13);
+		InequalityConstraint doubleVarConstraint = new InequalityConstraint(v1,
+				v2, LESS),
+				doubleLitConstraint = new InequalityConstraint(const1, const2,
+						LESS_EQ),
+				leftVarConstraint = new InequalityConstraint(v1, const1,
+						LESS_EQ),
+				rightVarConstraint = new InequalityConstraint(const2, v2, LESS);
+
+		// Can't generate constraints here because there's either too few or too
+		// many variables.
+		assertFalse(constraintToTriple(doubleVarConstraint, v3, latMinProp)
+				.isPresent());
+		assertFalse(constraintToTriple(doubleLitConstraint, v1, latMaxProp)
+				.isPresent());
+
+		// Can't generate constraints here because we're trying to upper bound a
+		// minimum property (not supported) or lower bound a maximum property
+		// (again, not supported)---we only support lower bounding minima and
+		// upper bounding maxima.
+		assertFalse(constraintToTriple(leftVarConstraint, v1, latMinProp)
+				.isPresent());
+		assertFalse(constraintToTriple(leftVarConstraint, v2, longMinProp)
+				.isPresent());
+		assertFalse(constraintToTriple(rightVarConstraint, v3, latMaxProp)
+				.isPresent());
+		assertFalse(constraintToTriple(rightVarConstraint, v1, latMaxProp)
+				.isPresent());
+
+		// This isn't latMin/latMax so it can't generate anything
+		assertFalse(constraintToTriple(rightVarConstraint, v1, irrelevantProp)
+				.isPresent());
+
+		// The following constraints should be all be okay
+		assertEquals(new Triple(v3, boxBottom, const2),
+				constraintToTriple(rightVarConstraint, v3, latMinProp).get());
+		assertEquals(new Triple(v1, boxLeft, const2),
+				constraintToTriple(rightVarConstraint, v1, longMinProp).get());
+		assertEquals(new Triple(v2, boxTop, const1),
+				constraintToTriple(leftVarConstraint, v2, latMaxProp).get());
+		assertEquals(new Triple(v3, boxRight, const1),
+				constraintToTriple(leftVarConstraint, v3, longMaxProp).get());
 	}
 
-	@Ignore("TODO")
 	@Test
 	public void testMakeNewConstraints() {
-		fail("TODO");
+		Var v1 = Var.alloc("v1"), v2 = Var.alloc("v2"), v3 = Var.alloc("v3");
+		Node const1 = createLiteralNode(42), const2 = createLiteralNode(13);
+
+		// Now make the mapping
+		PropertyMapping props = new PropertyMapping();
+		props.get(Pair.of(v1, latMinProp)).add(v2);
+		props.get(Pair.of(v1, latMinProp)).add(v3);
+		props.get(Pair.of(v1, latMaxProp)).add(v2);
+		props.get(Pair.of(v2, longMinProp)).add(v1);
+		props.get(Pair.of(v3, irrelevantProp)).add(v2);
+		ConstraintFunction constraintsOn = var -> {
+			Set<InequalityConstraint> rv = new HashSet<>();
+			if (v1.equals(var)) {
+				rv.add(new InequalityConstraint(const1, v1, LESS));
+			} else if (v2.equals(var)) {
+				rv.add(new InequalityConstraint(const1, v2, LESS_EQ));
+				rv.add(new InequalityConstraint(v3, const1, LESS_EQ));
+			} else if (v3.equals(var)) {
+				rv.add(new InequalityConstraint(const2, v3, LESS));
+			}
+			return rv;
+		};
+
+		// Finally, check that we get the expected constraint set from the
+		// mapping
+		Set<Triple> constraints = new HashSet<>(
+				makeNewConstraints(props, constraintsOn));
+		assertEquals(4, constraints.size());
+		Set<Triple> expectedConstraints = new HashSet<>(
+				Arrays.asList(new Triple(v1, boxBottom, const1),
+						new Triple(v1, boxBottom, const2),
+						new Triple(v1, boxTop, const1),
+						new Triple(v2, boxLeft, const1)));
+		assertEquals(expectedConstraints, constraints);
 	}
 }
