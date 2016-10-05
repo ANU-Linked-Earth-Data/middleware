@@ -4,7 +4,11 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -48,6 +52,14 @@ public class TestHDF5Dataset {
 		ds.cells(null, null, null, null, null, null)
 				.forEach(Assert::assertNotNull);
 		assertEquals(6, ds.cells(null, null, null, null, null, null).count());
+
+		Set<String> cellIDs = ds.cells(null, null, null, 149.3, -35.5, null)
+				.map(cell -> cell.getDGGSIdent())
+				.collect(Collectors.toSet());
+		Set<String> expectedCellIDs = new HashSet<>();
+		expectedCellIDs.add("R78520");
+		expectedCellIDs.add("R78523");
+		assertEquals(expectedCellIDs, cellIDs);
 	}
 
 	@Test

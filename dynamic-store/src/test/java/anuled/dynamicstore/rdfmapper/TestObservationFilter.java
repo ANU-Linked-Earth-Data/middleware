@@ -1,5 +1,7 @@
 package anuled.dynamicstore.rdfmapper;
 
+import static anuled.dynamicstore.rdfmapper.properties.LatLonBoxProperty.BoundType.*;
+import static anuled.dynamicstore.util.JenaUtil.*;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
@@ -21,7 +23,6 @@ import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.backend.PixelObservation;
 import anuled.dynamicstore.rdfmapper.properties.ObservationProperty;
 import anuled.dynamicstore.rdfmapper.properties.PropertyIndex;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
 
@@ -98,8 +99,7 @@ public class TestObservationFilter {
 
 	@Test
 	public void testIncompatibleType() {
-		filter.constrainToPixel();
-		filter.constrainToPixel();
+		filter.constrainToPixel().constrainToPixel();
 		assertEquals(84 / 2, filter.execute().count());
 		filter.constrainToTile();
 		assertEquals(0, filter.execute().count());
@@ -107,8 +107,7 @@ public class TestObservationFilter {
 
 	@Test
 	public void testIncompatibleLevel() {
-		filter.constrainLevel(3);
-		filter.constrainLevel(3);
+		filter.constrainLevel(3).constrainLevel(3);
 		assertEquals(14, filter.execute().count());
 		filter.constrainLevel(5);
 		assertEquals(0, filter.execute().count());
@@ -116,8 +115,8 @@ public class TestObservationFilter {
 
 	@Test
 	public void testIncompatibleBand() {
-		filter.constrainBandNum(3);
-		filter.constrainBandNum(3);
+		// double-specification of bands is fine iff it's the same band
+		filter.constrainBandNum(3).constrainBandNum(3);
 		assertEquals(84 / 7, filter.execute().count());
 		filter.constrainBandNum(4);
 		assertEquals(0, filter.execute().count());
@@ -125,16 +124,28 @@ public class TestObservationFilter {
 
 	@Test
 	public void testIncompatibleCellID() {
-		filter.constrainCellID("R78");
-		filter.constrainCellID("R78");
-		filter.constrainCellID("R91");
+		filter.constrainCellID("R78").constrainCellID("R78")
+				.constrainCellID("R91");
 		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testConstrainLocation() {
+		filter.constrainLatMin(-35.45).constrainLatMax(-35)
+				.constrainLonMin(148.8).constrainLonMax(149.3)
+				.constrainProperty(RDF.type.getURI(), LED.GridSquare.asNode())
+				.constrainProperty(LED.etmBand.getURI(), createLiteralNode(0));
+		List<String> cellIDs = filter.execute()
+				.map(obs -> obs.getCell().getDGGSIdent())
+				.collect(Collectors.toList());
+		assertEquals(1, cellIDs.size());
+		assertEquals("R78523", cellIDs.get(0));
 	}
 
 	@Test
 	public void testNonexistentProperty() {
 		filter.constrainProperty("http://example.com/doesntExist",
-				JenaUtil.createLiteralNode(42));
+				createLiteralNode(42));
 		assertEquals(0, filter.execute().count());
 	}
 
@@ -143,7 +154,7 @@ public class TestObservationFilter {
 		// there are some thing that we can't really constrain by in an efficent
 		// way
 		filter.constrainNaively(PropertyIndex.getProperty(LED.etmBand).get(),
-				JenaUtil.createLiteralNode(3));
+				createLiteralNode(3));
 		List<Observation> allObs = filter.execute()
 				.collect(Collectors.toList());
 		// there are 84 observations total in the test set, and 7 bands, so we
@@ -159,7 +170,7 @@ public class TestObservationFilter {
 		// we can only really filter values naively, since we don't have an
 		// inverted index for them
 		filter.constrainProperty(LED.value.getURI(),
-				JenaUtil.createLiteralNode(new Double(931.0)));
+				createLiteralNode(new Double(931.0)));
 		List<Observation> allObs = filter.execute()
 				.collect(Collectors.toList());
 		assertEquals(1, allObs.size());
@@ -172,7 +183,7 @@ public class TestObservationFilter {
 	@Test
 	public void testFilterByDGGSSquare() {
 		filter.constrainProperty(LED.dggsCell.getURI(),
-				JenaUtil.createLiteralNode("R7852"));
+				createLiteralNode("R7852"));
 		List<Observation> allObs = filter.execute()
 				.collect(Collectors.toList());
 		assertEquals(14, allObs.size());
@@ -182,30 +193,29 @@ public class TestObservationFilter {
 
 		// compatible constrain doesn't change anything
 		filter.constrainProperty(LED.dggsCell.getURI(),
-				JenaUtil.createLiteralNode("R7852"));
+				createLiteralNode("R7852"));
 		assertEquals(14, filter.execute().count());
 
 		// incompatible constraint breaks everything
 		filter.constrainProperty(LED.dggsCell.getURI(),
-				JenaUtil.createLiteralNode("R785"));
+				createLiteralNode("R785"));
 		assertEquals(0, filter.execute().count());
 
 		filter.constrainProperty(LED.dggsCell.getURI(),
-				JenaUtil.createURINode("http://not-a-literal/"));
+				createURINode("http://not-a-literal/"));
 		assertEquals(0, filter.execute().count());
 	}
 
 	@Test
 	public void testFilterByNonExistentSquare() {
 		filter.constrainProperty(LED.dggsCell.getURI(),
-				JenaUtil.createLiteralNode("R8192"));
+				createLiteralNode("R8192"));
 		assertEquals(0, filter.execute().count());
 	}
 
 	@Test
 	public void testFilterByBand() {
-		filter.constrainProperty(LED.etmBand.getURI(),
-				JenaUtil.createLiteralNode(3));
+		filter.constrainProperty(LED.etmBand.getURI(), createLiteralNode(3));
 		List<Observation> allObs = filter.execute()
 				.collect(Collectors.toList());
 		assertEquals(12, allObs.size());
@@ -213,30 +223,27 @@ public class TestObservationFilter {
 			assertEquals(3, obs.getBand());
 		}
 
-		filter.constrainProperty(LED.etmBand.getURI(),
-				JenaUtil.createLiteralNode(3));
+		filter.constrainProperty(LED.etmBand.getURI(), createLiteralNode(3));
 		assertEquals(12, filter.execute().count());
 
-		filter.constrainProperty(LED.etmBand.getURI(),
-				JenaUtil.createLiteralNode(4));
+		filter.constrainProperty(LED.etmBand.getURI(), createLiteralNode(4));
 		assertEquals(0, filter.execute().count());
 
 		filter.constrainProperty(LED.etmBand.getURI(),
-				JenaUtil.createURINode("http://not-a-literal/"));
+				createURINode("http://not-a-literal/"));
 		assertEquals(0, filter.execute().count());
 	}
 
 	@Test
 	public void testFilterByNonexistentBand() {
-		filter.constrainProperty(LED.etmBand.getURI(),
-				JenaUtil.createLiteralNode(17));
+		filter.constrainProperty(LED.etmBand.getURI(), createLiteralNode(17));
 		assertEquals(0, filter.execute().count());
 	}
 
 	@Test
 	public void testFilterByLevel() {
 		filter.constrainProperty(LED.dggsLevelSquare.getURI(),
-				JenaUtil.createLiteralNode(5));
+				createLiteralNode(5));
 		List<Observation> allObs = filter.execute()
 				.collect(Collectors.toList());
 		assertEquals(14, allObs.size());
@@ -245,34 +252,33 @@ public class TestObservationFilter {
 		}
 
 		filter.constrainProperty(LED.dggsLevelSquare.getURI(),
-				JenaUtil.createLiteralNode(5));
+				createLiteralNode(5));
 		assertEquals(14, filter.execute().count());
 
 		filter.constrainProperty(LED.dggsLevelSquare.getURI(),
-				JenaUtil.createLiteralNode(6));
+				createLiteralNode(6));
 		assertEquals(0, filter.execute().count());
 
 		filter.constrainProperty(LED.dggsLevelSquare.getURI(),
-				JenaUtil.createURINode("http://not-a-literal/"));
+				createURINode("http://not-a-literal/"));
 		assertEquals(0, filter.execute().count());
 	}
 
 	@Test
 	public void testFilterByNonexistentLevel() {
 		filter.constrainProperty(LED.dggsLevelSquare.getURI(),
-				JenaUtil.createLiteralNode(21));
+				createLiteralNode(21));
 		assertEquals(0, filter.execute().count());
 	}
 
 	@Test
 	public void testComposeFilters() {
 		filter.constrainProperty(LED.dggsCell.getURI(),
-				JenaUtil.createLiteralNode("R7852"));
-		filter.constrainProperty(LED.etmBand.getURI(),
-				JenaUtil.createLiteralNode(5));
-		filter.constrainProperty(LED.dggsLevelSquare.getURI(),
-				JenaUtil.createLiteralNode(5));
-		filter.constrainProperty(RDF.type.getURI(), LED.Pixel.asNode());
+				createLiteralNode("R7852"))
+				.constrainProperty(LED.etmBand.getURI(), createLiteralNode(5))
+				.constrainProperty(LED.dggsLevelSquare.getURI(),
+						createLiteralNode(5))
+				.constrainProperty(RDF.type.getURI(), LED.Pixel.asNode());
 		List<Observation> allObs = filter.execute()
 				.collect(Collectors.toList());
 		assertEquals(1, allObs.size());
@@ -280,5 +286,33 @@ public class TestObservationFilter {
 		assertEquals(5, firstObs.getBand());
 		assertEquals("R7852", firstObs.getCell().getDGGSIdent());
 		assertEquals(5, firstObs.getCellLevel());
+	}
+
+	@Test
+	public void testIrrelevantLatLonBoxProperty() {
+		// Shouldn't do anything
+		filter.constrainProperty(BoxBottom.getURI(), createLiteralNode(-80.0));
+		assertEquals(84, filter.execute().count());
+	}
+
+	@Test
+	public void testInvalidLatLonBoxProperty() {
+		filter.constrainProperty(BoxRight.getURI(),
+				createLiteralNode("clearly not a number"));
+		assertEquals(0, filter.execute().count());
+	}
+
+	@Test
+	public void testMeaningfulLatLonBoxProperty() {
+		filter.constrainProperty(BoxBottom.getURI(), createLiteralNode(-35.45))
+				.constrainProperty(BoxTop.getURI(), createLiteralNode(-35))
+				.constrainProperty(BoxLeft.getURI(), createLiteralNode(148.8))
+				.constrainProperty(BoxRight.getURI(), createLiteralNode(149.3))
+				.constrainProperty(RDF.type.getURI(), LED.GridSquare.asNode())
+				.constrainProperty(LED.etmBand.getURI(), createLiteralNode(0));
+		List<Observation> out = filter.execute().collect(Collectors.toList());
+		assertEquals(1, out.size());
+		assertEquals("R78523", out.get(0).getCell().getDGGSIdent());
+
 	}
 }

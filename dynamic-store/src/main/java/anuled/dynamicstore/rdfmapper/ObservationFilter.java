@@ -40,7 +40,7 @@ public class ObservationFilter {
 		this.dataset = dataset;
 	}
 
-	public void constrainProperty(String propURI, Node expectedValue) {
+	public ObservationFilter constrainProperty(String propURI, Node expectedValue) {
 		// Expected value must be URL/literal/blank
 		assert expectedValue.isConcrete();
 		Optional<ObservationProperty> maybeProp = PropertyIndex
@@ -50,81 +50,94 @@ public class ObservationFilter {
 		} else {
 			maybeProp.get().applyToFilter(this, expectedValue);
 		}
+		return this;
 	}
 
-	public void constrainCellID(String newCellID) {
+	public ObservationFilter constrainCellID(String newCellID) {
 		if (reqCellID == null || reqCellID.equals(newCellID)) {
 			reqCellID = newCellID;
 		} else {
 			// can't have two cell IDs
 			constrainImpossibly();
 		}
+		return this;
 	}
 
-	public void constrainBandNum(int bandNum) {
+	public ObservationFilter constrainBandNum(int bandNum) {
 		if (reqBandNum == null || reqBandNum.equals(bandNum)) {
 			reqBandNum = bandNum;
 		} else {
 			constrainImpossibly();
 		}
+		return this;
 	}
 
-	public void constrainLevel(int level) {
+	public ObservationFilter constrainLevel(int level) {
 		if (reqLevel == null || reqLevel.equals(level)) {
 			reqLevel = level;
 		} else {
 			constrainImpossibly();
 		}
+		return this;
 	}
 
-	private void constrainType(Class<?> newClass) {
+	private ObservationFilter constrainType(Class<?> newClass) {
 		if (reqClass == null || reqClass == newClass) {
 			reqClass = newClass;
 		} else {
 			constrainImpossibly();
 		}
+		return this;
 	}
 
-	public void constrainLatMax(double latMax) {
+	public ObservationFilter constrainLatMax(double latMax) {
 		this.latMax = latMax;
+		return this;
 	}
 
-	public void constrainLatMin(double latMin) {
+	public ObservationFilter constrainLatMin(double latMin) {
 		this.latMin = latMin;
+		return this;
 	}
 
-	public void constrainLonMax(double lonMax) {
+	public ObservationFilter constrainLonMax(double lonMax) {
 		this.lonMax = lonMax;
+		return this;
 	}
 
-	public void constrainLonMin(double lonMin) {
+	public ObservationFilter constrainLonMin(double lonMin) {
 		this.lonMin = lonMin;
+		return this;
 	}
 
-	public void constrainToPixel() {
+	public ObservationFilter constrainToPixel() {
 		constrainType(PixelObservation.class);
+		return this;
 	}
 
-	public void constrainToTile() {
+	public ObservationFilter constrainToTile() {
 		constrainType(TileObservation.class);
+		return this;
 	}
 
-	public void constrainNaively(ObservationProperty prop, Node value) {
+	public ObservationFilter constrainNaively(ObservationProperty prop, Node value) {
 		// Optimisation opportunity: check for conflicting values (assuming that
 		// the constraints are AND rather than OR)
 		naiveConstraints.add(Pair.of(prop, value));
+		return this;
 	}
 
-	public void constrainImpossibly() {
+	public ObservationFilter constrainImpossibly() {
 		empty = true;
+		return this;
 	}
 
 	public Stream<Observation> execute() {
 		if (empty) {
 			return Stream.of();
 		} else {
-			Stream<Cell> cells = dataset.cells(reqLevel, reqCellID, latMin,
-					latMax, lonMin, lonMax);
+			Stream<Cell> cells = dataset.cells(reqLevel, reqCellID, lonMin,
+					lonMax, latMin, latMax);
 			Stream<Observation> observations = cells
 					.flatMap(c -> c.observations(reqBandNum, reqClass))
 					.filter(o -> {

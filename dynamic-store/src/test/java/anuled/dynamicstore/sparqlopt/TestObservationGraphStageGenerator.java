@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.jena.graph.Node;
@@ -24,6 +25,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Ignore;
 
 import anuled.dynamicstore.ObservationGraph;
 import anuled.dynamicstore.ObservationNode;
@@ -70,8 +72,7 @@ public class TestObservationGraphStageGenerator {
 						createVariable("baz")) };
 		Triple[] unordered = { expected[2], expected[1], expected[4],
 				expected[0], expected[3] };
-		Arrays.sort(unordered,
-				new TripleComparator());
+		Arrays.sort(unordered, new TripleComparator());
 		assertEquals(expected.length, unordered.length);
 		for (int i = 0; i < unordered.length; i++) {
 			assertEquals(expected[i], unordered[i]);
@@ -177,4 +178,24 @@ public class TestObservationGraphStageGenerator {
 		assertFalse(result.hasNext());
 	}
 
+	@Ignore("TODO")
+	@Test
+	public void testAssociatedProperties() {
+		List<Triple> emptyList = Collections.emptyList();
+		assertEquals(0, associatedProperties(emptyList).size());
+
+		fail("TODO");
+	}
+	
+	@Ignore("TODO")
+	@Test
+	public void testConstraintToTriple() {
+		fail("TODO");
+	}
+	
+	@Ignore("TODO")
+	@Test
+	public void testMakeNewConstraints() {
+		fail("TODO");
+	}
 }

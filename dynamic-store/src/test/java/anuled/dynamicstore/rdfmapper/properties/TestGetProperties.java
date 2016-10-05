@@ -64,7 +64,8 @@ public class TestGetProperties {
 
 	private List<Node> getProp(String prop, Observation obs) {
 		ObservationProperty fetcher = PropertyIndex.getProperty(prop).get();
-		return fetcher.valuesForObservation(obs, "http://fake/").collect(Collectors.toList());
+		return fetcher.valuesForObservation(obs, "http://fake/")
+				.collect(Collectors.toList());
 	}
 
 	@Test
@@ -124,8 +125,7 @@ public class TestGetProperties {
 
 	@Test
 	public void testDataset() {
-		assertNodeListIsURI("http://fake/",
-				getProp(QB.dataSet, pxObs));
+		assertNodeListIsURI("http://fake/", getProp(QB.dataSet, pxObs));
 	}
 
 	@Test
@@ -139,7 +139,7 @@ public class TestGetProperties {
 		Node fst = boundsNodes.get(0);
 		assertTrue(fst.isLiteral());
 		String boundsWKT = fst.getLiteralLexicalForm();
-		
+
 		// Extract the coordinate list (lon lat points)
 		String prefix = "POLYGON((";
 		String suffix = "))";
@@ -147,7 +147,7 @@ public class TestGetProperties {
 		assertTrue(boundsWKT.endsWith(suffix));
 		String innnerList = boundsWKT.substring(prefix.length(),
 				boundsWKT.length() - suffix.length());
-		
+
 		// Now this is going to get really messy
 		double[][] truePolyPoints = { { 148.889, -34.6638 }, { 150, -34.6638 },
 				{ 150, -35.8186 }, { 148.889, -35.8186 },
@@ -194,7 +194,7 @@ public class TestGetProperties {
 						.getTimestamp().toZonedDateTime()),
 				getProp(LED.time, pxObs));
 	}
-	
+
 	@Test
 	public void testMBR() {
 		// test minimum bounding rectangle properties
@@ -202,5 +202,18 @@ public class TestGetProperties {
 		assertNodeListIsEqual(-34.6638, getProp(LED.latMax, tlObs), 1e-1);
 		assertNodeListIsEqual(148.889, getProp(LED.longMin, tlObs), 1e-2);
 		assertNodeListIsEqual(150.0, getProp(LED.longMax, tlObs), 1e-2);
+	}
+
+	@Test
+	public void testLLBP() {
+		// LatLonBoxProperty should error when you get its value
+		try {
+			getProp(LatLonBoxProperty.BoundType.BoxBottom.getURI(), tlObs);
+		} catch (RuntimeException e) {
+			assertTrue(e.getMessage()
+					.contains("Property is internal, and not intended"));
+			return;
+		}
+		fail("Should error out before getting here");
 	}
 }

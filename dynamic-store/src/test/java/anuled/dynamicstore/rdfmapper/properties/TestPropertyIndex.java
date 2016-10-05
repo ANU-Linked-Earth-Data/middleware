@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import anuled.vocabulary.LED;
 import anuled.dynamicstore.rdfmapper.properties.*;
+import anuled.dynamicstore.rdfmapper.properties.LatLonBoxProperty.BoundType;
 
 @SuppressWarnings("unused")
 public class TestPropertyIndex {
@@ -25,6 +26,14 @@ public class TestPropertyIndex {
 
 		assertFalse(
 				PropertyIndex.getProperty(LED.GridSquare.getURI()).isPresent());
+
+		// LatLonBoxProperty instances are weird. Make sure they're all in the
+		// index, but not externally visible!
+		for (BoundType type : BoundType.values()) {
+			String uri = type.getURI();
+			assertTrue(PropertyIndex.getProperty(uri).isPresent());
+			assertFalse(PropertyIndex.externalPropertyURIs().contains(uri));
+		}
 	}
 
 	@Test
