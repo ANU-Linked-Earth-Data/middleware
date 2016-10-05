@@ -2,6 +2,7 @@ package anuled.dynamicstore.sparqlopt;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -9,7 +10,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.collections4.Transformer;
-import org.apache.commons.collections4.map.DefaultedMap;
+import org.apache.commons.collections4.map.LazyMap;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
@@ -69,26 +70,27 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 
 	/** typedef to clean up some code below */
 	protected static class PropertyMapping
-			extends DefaultedMap<Pair<Var, ObservationProperty>, Set<Var>> {
-		private static final long serialVersionUID = 6122053846597081334L;
-
-		public PropertyMapping(
-				Transformer<? super Pair<Var, ObservationProperty>, ? extends Set<Var>> defaultValueTransformer) {
-			super(defaultValueTransformer);
+			extends LazyMap<Pair<Var, ObservationProperty>, Set<Var>> {
+		protected PropertyMapping(
+				Transformer<? super Pair<Var, ObservationProperty>, ? extends Set<Var>> factory) {
+			super(new HashMap<>(), factory);
 		}
+
+		private static final long serialVersionUID = 6122053846597081334L;
 	}
 
 	/**
 	 * Scans for triples of the form </code>?s led:* ?o</code>. Will produce a
-	 * map from subjects to another map, which in turn maps from properties to
-	 * objects.
+	 * map which enables lookup of objects in triples of that form based on the
+	 * subject and property.
 	 * 
 	 * This process is mainly useful when there's an enclosing
 	 * <code>FILTER()</code> which is trying to add a bounding box constraint to
 	 * the query. In that case, the middleware is interested in cases where the
 	 * predicate is <code>led:{lat,long}{Min,Max}</code>.
 	 */
-	protected static PropertyMapping associatedProperties(List<Triple> triples) {
+	protected static PropertyMapping associatedProperties(
+			List<Triple> triples) {
 		PropertyMapping rv = new PropertyMapping(k -> new HashSet<>());
 		for (Triple t : triples) {
 			Node subjNode = t.getSubject();

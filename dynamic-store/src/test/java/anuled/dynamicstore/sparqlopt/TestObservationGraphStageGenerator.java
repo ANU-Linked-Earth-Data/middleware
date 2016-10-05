@@ -1,6 +1,7 @@
 package anuled.dynamicstore.sparqlopt;
 
 import static anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.*;
+import static anuled.dynamicstore.util.JenaUtil.*;
 import static org.apache.jena.graph.NodeFactory.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -9,7 +10,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.core.BasicPattern;
@@ -24,12 +27,15 @@ import org.apache.jena.vocabulary.RDF;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Test;
 import org.junit.Ignore;
+import org.junit.Test;
 
 import anuled.dynamicstore.ObservationGraph;
 import anuled.dynamicstore.ObservationNode;
 import anuled.dynamicstore.TestData;
+import anuled.dynamicstore.rdfmapper.properties.ObservationProperty;
+import anuled.dynamicstore.rdfmapper.properties.PropertyIndex;
+import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.PropertyMapping;
 import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.TripleBlock;
 import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
@@ -178,21 +184,42 @@ public class TestObservationGraphStageGenerator {
 		assertFalse(result.hasNext());
 	}
 
-	@Ignore("TODO")
 	@Test
 	public void testAssociatedProperties() {
 		List<Triple> emptyList = Collections.emptyList();
 		assertEquals(0, associatedProperties(emptyList).size());
 
-		fail("TODO");
+		Var v1 = Var.alloc("v1"), v2 = Var.alloc("v2"), v3 = Var.alloc("v3");
+		Node uri1 = LED.etmBand.asNode(), uri2 = RDF.type.asNode(),
+				uri3 = LED.latMin.asNode(),
+				uri4 = createURINode("http://not-a-property/");
+		Node blank1 = createBlankNode();
+		List<Triple> bigList = Arrays.asList(new Triple(v1, v2, v3),
+				new Triple(uri1, uri2, v1), new Triple(v1, uri1, v2),
+				new Triple(v1, uri1, v3), new Triple(v1, uri2, v3),
+				new Triple(v1, blank1, v2), new Triple(v3, uri3, v1),
+				new Triple(v3, uri2, v2), new Triple(v2, uri4, v1));
+		// Pairs we want to look for:
+		// 1) (v1, etmBand) (x2)
+		// 2) (v1, type) (x1)
+		// 3) (v3, latMin) (x1)
+		// 4) (v3, type) (x1)
+		PropertyMapping props = associatedProperties(bigList);
+		assertEquals(4, props.size());
+		Function<Node, ObservationProperty> toProp = node -> PropertyIndex
+				.getProperty(node.getURI()).get();
+		assertEquals(2, props.get(Pair.of(v1, toProp.apply(uri1))).size());
+		assertEquals(1, props.get(Pair.of(v1, toProp.apply(uri2))).size());
+		assertEquals(1, props.get(Pair.of(v3, toProp.apply(uri3))).size());
+		assertEquals(1, props.get(Pair.of(v3, toProp.apply(uri2))).size());
 	}
-	
+
 	@Ignore("TODO")
 	@Test
 	public void testConstraintToTriple() {
 		fail("TODO");
 	}
-	
+
 	@Ignore("TODO")
 	@Test
 	public void testMakeNewConstraints() {
