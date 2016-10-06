@@ -53,7 +53,7 @@ public class InequalityConstraint {
 
 	public Var rightVar() {
 		assert rightIsVar();
-		return (Var) left;
+		return (Var) right;
 	}
 
 	private static Optional<Node> subExprToNode(Expr expr) {

@@ -26,7 +26,7 @@ public class TestObservationGraphOpExecutorFactory {
 		ExecutionContext ctx = new ExecutionContext(new Context(), blankGraph,
 				dsGraph, OpExecutor.stdFactory);
 
-		ObservationGraphOpExecutorFactory ogFactory = new ObservationGraphOpExecutorFactory(
+		ObservationGraphOpExecutor ogFactory = new ObservationGraphOpExecutor(
 				ctx);
 		OpFilter bgpFilter = (OpFilter) SSE
 				.parseOp("(filter (< ?o 42) (bgp (?s ?p ?o)))"),

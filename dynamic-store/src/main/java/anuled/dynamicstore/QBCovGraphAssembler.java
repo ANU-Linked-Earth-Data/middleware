@@ -7,10 +7,15 @@ import org.apache.jena.query.ARQ;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.sparql.engine.ExecutionContext;
+import org.apache.jena.sparql.engine.main.OpExecutor;
+import org.apache.jena.sparql.engine.main.OpExecutorFactory;
+import org.apache.jena.sparql.engine.main.QC;
 import org.apache.jena.sparql.engine.main.StageBuilder;
 import org.apache.jena.sparql.engine.main.StageGenerator;
 import org.apache.jena.sparql.util.graph.GraphUtils;
 
+import anuled.dynamicstore.sparqlopt.ObservationGraphOpExecutor;
 import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator;
 import anuled.vocabulary.LED;
 
@@ -53,6 +58,10 @@ public class QBCovGraphAssembler extends AssemblerBase {
 						}
 					});
 
+			// XXX: Registering these two classes globally is a Bad Idea(tm).
+			// If I can, I'd like to add them to relevant contexts (e.g. in
+			// production, in unit tests) manually.
+
 			// as good a place as any to put this in
 			// now we only have to load one custom class in our Fuseki configs
 			StageGenerator oldGenerator = (StageGenerator) ARQ.getContext()
@@ -60,6 +69,14 @@ public class QBCovGraphAssembler extends AssemblerBase {
 			StageGenerator newGenerator = new ObservationGraphStageGenerator(
 					oldGenerator);
 			StageBuilder.setGenerator(ARQ.getContext(), newGenerator);
+
+			// Also load our filter-handling opExecutor
+			QC.setFactory(ARQ.getContext(), new OpExecutorFactory() {
+				@Override
+				public OpExecutor create(ExecutionContext execCtx) {
+					return new ObservationGraphOpExecutor(execCtx);
+				}
+			});
 
 			initialised = true;
 		}

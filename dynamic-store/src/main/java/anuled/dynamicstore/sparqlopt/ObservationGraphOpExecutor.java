@@ -8,13 +8,13 @@ import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.main.OpExecutor;
 import org.apache.jena.sparql.expr.ExprList;
 
-public class ObservationGraphOpExecutorFactory extends OpExecutor {
-	protected ObservationGraphOpExecutorFactory(ExecutionContext execCxt) {
+public class ObservationGraphOpExecutor extends OpExecutor {
+	public ObservationGraphOpExecutor(ExecutionContext execCxt) {
 		super(execCxt);
 	}
 
 	@Override
-    protected QueryIterator execute(OpFilter opFilter, QueryIterator input) {
+    public QueryIterator execute(OpFilter opFilter, QueryIterator input) {
 		// hack to rewrite numeric constraints (<, >, etc.) as side channel information in a BGP
         Op base = opFilter.getSubOp();
         if (base instanceof OpBGP) {
