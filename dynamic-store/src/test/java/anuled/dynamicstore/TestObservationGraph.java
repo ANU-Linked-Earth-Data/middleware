@@ -4,7 +4,9 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,7 +39,7 @@ public class TestObservationGraph {
 	private static TestData td;
 	private static String prefixes = "prefix ogc: <http://www.opengis.net/ont/geosparql#>\n"
 			+ "prefix qb: <http://purl.org/linked-data/cube#>\n"
-			+ "prefix led: <http://www.example.org/ANU-LED#>\n"
+			+ "prefix led: <http://www.anulinkedearth.org/sandbox/ANU-LED#>\n"
 			+ "prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>\n"
 			+ "prefix owl: <http://www.w3.org/2002/07/owl#>\n"
 			+ "prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
@@ -154,7 +156,7 @@ public class TestObservationGraph {
 				graph.mapToTriples(obs, RDF.type.asNode(), null).count());
 	}
 
-	@Test(timeout = 30000)
+	@Test
 	public void testGraphBaseFindTriple() {
 		Triple pattern = Triple.createMatch(null, null, null);
 		// Just try getting back the iterator (don't bother with anything else
@@ -164,7 +166,7 @@ public class TestObservationGraph {
 		assertTrue(trips.toList().size() > 100);
 	}
 
-	@Test(timeout = 30000)
+	@Test
 	public void testQuery() {
 		ResultSet results = runSelect("SELECT * WHERE {?s ?p ?o.} LIMIT 10");
 		// Make sure a query for everything //actually executes//.
@@ -178,5 +180,22 @@ public class TestObservationGraph {
 			assertTrue(uri
 					.startsWith("https://anulinkedearth.org/rdf/observation/"));
 		}
+	}
+
+	@Test
+	public void testFilteredQuery() {
+		ResultSet results = runSelect("SELECT DISTINCT ?cell WHERE {"
+				+ "?s a qb:Observation; led:latMin ?minLat"
+				+ "; led:latMax ?maxLat; led:longMin ?minLong"
+				+ "; led:longMax ?maxLong; led:dggsCell ?cell."
+				+ "FILTER(?minLat > -35.45 && -35 > ?maxLat &&"
+				+ "148.8 <= ?minLong && ?maxLong <= 149.3)}");
+		Set<String> allCells = new HashSet<>();
+		results.forEachRemaining(sol -> {
+			String cellID = sol.getLiteral("cell").getString();
+			allCells.add(cellID);
+		});
+		Set<String> expectedCells = new HashSet<>(Arrays.asList("R78523"));
+		assertEquals(expectedCells, allCells);
 	}
 }
