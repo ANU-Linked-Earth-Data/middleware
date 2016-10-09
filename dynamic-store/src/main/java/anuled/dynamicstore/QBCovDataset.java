@@ -108,10 +108,6 @@ public class QBCovDataset {
 				.createResource(uriPrefix + "timeComponent")
 				.addProperty(RDF.type, QB.ComponentSpecification)
 				.addProperty(QB.dimension, time);
-		Resource satelliteComponent = metaModel
-				.createResource(uriPrefix + "satelliteComponent")
-				.addProperty(RDF.type, QB.ComponentSpecification)
-				.addProperty(QB.dimension, satellite);
 		Resource instrumentComponent = metaModel
 				.createResource(uriPrefix + "instrumentComponent")
 				.addProperty(RDF.type, QB.ComponentSpecification)
@@ -148,7 +144,6 @@ public class QBCovDataset {
 				.addProperty(QB.component, latitudeComponent)
 				.addProperty(QB.component, longitudeComponent)
 				.addProperty(QB.component, timeComponent)
-				.addProperty(QB.component, satelliteComponent)
 				.addProperty(QB.component, instrumentComponent)
 				.addProperty(QB.component, bandComponent)
 				.addProperty(QB.component, dataComponent)
