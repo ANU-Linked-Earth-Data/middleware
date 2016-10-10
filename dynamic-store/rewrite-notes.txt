@@ -1,0 +1,15 @@
+Notes for the "Great HDF5Dataset Merge" (in which I completely change the
+backing DGGS format with 10 days left in the project)
+
+* Here's how I was parsing dates before:
+
+		IHDF5StringReader stringReader = fp.string();
+		String dateString = stringReader.getAttr("/", "datetime");
+		obsDate = OffsetDateTime.parse(dateString);
+
+  I can't do that any more because I'm storing dates differently. Oh well.
+
+* I'm marking things I need to revist with "TODO REFAC"
+
+* "Dataset" is stupid. Instead, I'm calling the various AGDC datasets which we
+  support "products". That should make the code a lot less confusing.
