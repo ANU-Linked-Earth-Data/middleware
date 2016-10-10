@@ -1,5 +1,7 @@
 package anuled.dynamicstore.backend;
 
+import java.time.ZonedDateTime;
+
 /**
  * Class representing a single "observation". An observation is tied to a single
  * DGGS cell <em>and</em> a single band. It can be either a tile or a
@@ -8,13 +10,19 @@ package anuled.dynamicstore.backend;
 public abstract class Observation {
 	int band;
 	Cell cell;
+	String product;
+	ZonedDateTime timestamp;
 
-	protected Observation(Cell cell, int band) {
+	protected Observation(Cell cell, String product, ZonedDateTime timestamp,
+			int band) {
 		if (band < 0 || band >= cell.getNumBands()) {
-			throw new InvalidBandException("Band " + band + " out of range [0, " + cell.getNumBands() + ")");
+			throw new InvalidBandException("Band " + band + " out of range [0, "
+					+ cell.getNumBands() + ")");
 		}
 		this.cell = cell;
 		this.band = band;
+		this.product = product;
+		this.timestamp = timestamp;
 	}
 
 	/** DGGS cell associated with this observation */
@@ -33,6 +41,21 @@ public abstract class Observation {
 	 */
 	public int getCellLevel() {
 		return getCell().getDGGSIdent().length();
+	}
+
+	/**
+	 * Fetch the name of the AGDC product which this observation corresponds to
+	 * (e.g. LS8_OLI_NBAR for some Landsat 8 data)
+	 */
+	public String getProduct() {
+		return product;
+	}
+
+	/**
+	 * Get the time at which this observation was produced.
+	 */
+	public ZonedDateTime getTimestamp() {
+		return timestamp;
 	}
 
 	/**

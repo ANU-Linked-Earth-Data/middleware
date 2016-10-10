@@ -6,7 +6,7 @@ import java.time.ZonedDateTime;
 public class ObservationMeta implements Cloneable {
 	int levelSquare, levelPixel, band;
 	ZonedDateTime timestamp;
-	String cell;
+	String cell, product;
 	
 	public ObservationMeta clone() throws CloneNotSupportedException {
 		return (ObservationMeta)super.clone();

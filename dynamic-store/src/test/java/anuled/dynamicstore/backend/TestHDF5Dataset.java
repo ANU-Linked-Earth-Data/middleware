@@ -3,7 +3,7 @@ package anuled.dynamicstore.backend;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
-import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -64,10 +64,6 @@ public class TestHDF5Dataset {
 
 	@Test
 	public void testMetadata() {
-		// check dataset metadata is correct
-		assertEquals(OffsetDateTime.parse("2013-05-27T23:58:20Z"),
-				ds.getTimestamp());
-
 		// check cell metadata is correct
 		String dggsIdent = "R78520";
 		Cell cell = ds.dggsCell(dggsIdent);
@@ -140,6 +136,9 @@ public class TestHDF5Dataset {
 		assertEquals(1 / 0.37, pixelObs.getResolution(), 1e-1);
 		assertEquals(6, pixelObs.getPixelLevel());
 		assertEquals(6, pixelObs.getCellLevel());
+		
+		assertEquals(ZonedDateTime.parse("2013-05-27T23:58:20Z"),
+				pixelObs.getTimestamp());
 
 		TileObservation tileObs = cell.tileObservation(4);
 		// Just make sure we're getting PNG back (roughly)

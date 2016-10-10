@@ -190,8 +190,7 @@ public class TestGetProperties {
 	@Test
 	public void testTime() {
 		assertNodeListIsLiteral(
-				GregorianCalendar.from(pxObs.getCell().getDataset()
-						.getTimestamp().toZonedDateTime()),
+				GregorianCalendar.from(pxObs.getTimestamp()),
 				getProp(LED.time, pxObs));
 	}
 

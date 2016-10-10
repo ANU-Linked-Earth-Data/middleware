@@ -17,7 +17,8 @@ public class URLScheme {
 	public static String DATA_PREFIX = "https://anulinkedearth.org/rdf/observation/";
 	
 	public static Pattern SUFFIX_PATTERN = Pattern
-			.compile("^(?<year>\\d{4})/(?<month>\\d{2})/(?<day>\\d{2})"
+			.compile("^(?<product>\\w+)"
+					+ "/(?<year>\\d{4})/(?<month>\\d{2})/(?<day>\\d{2})"
 					+ "/(?<hour>\\d{2})/(?<minute>\\d{2})/(?<second>\\d{2})"
 					+ "/cell/(?<cellID>[N-S]\\d*)"
 					+ "/levelSquare-(?<levelSquare>\\d+)"
@@ -29,16 +30,16 @@ public class URLScheme {
 	 * resolution) in the dataset.
 	 */
 	public static String observationURL(Observation obs) {
-		String rv = DATA_PREFIX;
+		String rv = DATA_PREFIX + obs.getProduct() + "/";
 
 		// Add date/time
-		Cell cell = obs.getCell();
-		OffsetDateTime dt = cell.getDataset().getTimestamp();
+		OffsetDateTime dt = obs.getTimestamp().toOffsetDateTime();
 		rv += String.format("%04d/%02d/%02d/%02d/%02d/%02d", dt.getYear(),
 				dt.getMonthValue(), dt.getDayOfMonth(), dt.getHour(),
 				dt.getMinute(), dt.getSecond());
 
 		// DGGS details
+		Cell cell = obs.getCell();
 		rv += String.format("/cell/%s/levelSquare-%d/levelPixel-%d/band-%d",
 				cell.getDGGSIdent(), obs.getCellLevel(), obs.getPixelLevel(),
 				obs.getBand());
@@ -80,6 +81,7 @@ public class URLScheme {
 		rv.levelSquare = Integer.parseInt(matcher.group("levelSquare"));
 		rv.levelPixel = Integer.parseInt(matcher.group("levelPixel"));
 		rv.band = Integer.parseInt(matcher.group("band"));
+		rv.product = matcher.group("product");
 		return rv;
 	}
 }

@@ -1,6 +1,5 @@
 package anuled.dynamicstore.backend;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -12,7 +11,6 @@ import java.util.stream.Stream;
 
 import ch.systemsx.cisd.hdf5.HDF5Factory;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
-import ch.systemsx.cisd.hdf5.IHDF5StringReader;
 
 /* Class for accessing satellite observations stored using our custom HDF5 format. */
 
@@ -20,9 +18,6 @@ public class HDF5Dataset {
 	private IHDF5Reader fp;
 	private Map<Integer, Collection<Cell>> cellsByLevel;
 	private Map<String, Cell> cellsByID;
-
-	/* Dataset-wide metadata */
-	private OffsetDateTime obsDate;
 
 	protected IHDF5Reader getReader() {
 		return fp;
@@ -34,13 +29,6 @@ public class HDF5Dataset {
 		// Read all cells into core (but not their data); makes our job easier
 		// later
 		populateCells();
-		readMeta();
-	}
-
-	private void readMeta() {
-		IHDF5StringReader stringReader = fp.string();
-		String dateString = stringReader.getAttr("/", "datetime");
-		obsDate = OffsetDateTime.parse(dateString);
 	}
 
 	private void populateCells() {
@@ -147,11 +135,5 @@ public class HDF5Dataset {
 		} catch (Cell.NotACell e) {
 			return null;
 		}
-	}
-
-	// Metadata getters
-	/** Retrieve the date and time at which the dataset was produced */
-	public OffsetDateTime getTimestamp() {
-		return obsDate;
 	}
 }

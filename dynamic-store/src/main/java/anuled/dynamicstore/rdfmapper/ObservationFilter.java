@@ -177,8 +177,7 @@ public class ObservationFilter {
 
 		// We know that band number, cell ID and levelSquare match. Just need to
 		// check that levelPixel and datetime match
-		boolean tsEqual = fst.getCell().getDataset().getTimestamp()
-				.toZonedDateTime().equals(meta.timestamp);
+		boolean tsEqual = fst.getTimestamp().equals(meta.timestamp);
 		if (fst.getPixelLevel() == meta.levelPixel && tsEqual) {
 			return fst;
 		}
