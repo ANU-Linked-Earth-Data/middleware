@@ -65,9 +65,6 @@ public class TestHDF5Dataset {
 	@Test
 	public void testMetadata() {
 		// check dataset metadata is correct
-		assertEquals("NBAR", ds.getProdCode());
-		assertEquals("LS8", ds.getSatID());
-		assertEquals("OLI_TIRS", ds.getSensorID());
 		assertEquals(OffsetDateTime.parse("2013-05-27T23:58:20Z"),
 				ds.getTimestamp());
 

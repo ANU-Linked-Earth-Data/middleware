@@ -23,7 +23,6 @@ public class HDF5Dataset {
 
 	/* Dataset-wide metadata */
 	private OffsetDateTime obsDate;
-	private String prodCode, satID, sensorID;
 
 	protected IHDF5Reader getReader() {
 		return fp;
@@ -42,9 +41,6 @@ public class HDF5Dataset {
 		IHDF5StringReader stringReader = fp.string();
 		String dateString = stringReader.getAttr("/", "datetime");
 		obsDate = OffsetDateTime.parse(dateString);
-		prodCode = stringReader.getAttr("/", "prod_code");
-		satID = stringReader.getAttr("/", "sat_id");
-		sensorID = stringReader.getAttr("/", "sensor_id");
 	}
 
 	private void populateCells() {
@@ -157,29 +153,5 @@ public class HDF5Dataset {
 	/** Retrieve the date and time at which the dataset was produced */
 	public OffsetDateTime getTimestamp() {
 		return obsDate;
-	}
-
-	/**
-	 * Get ID of the satellite which produced the dataset (e.g.
-	 * <code>"LS8"</code>)
-	 */
-	public String getSatID() {
-		return satID;
-	}
-
-	/**
-	 * Retrieve AGDC "product" (dataset) code (e.g. <code>"NBAR"</code> for some
-	 * surface reflectance datasets)
-	 */
-	public String getProdCode() {
-		return prodCode;
-	}
-
-	/**
-	 * Get an identifier for the sensor which produced the dataset (e.g.
-	 * <code>ETM</code> on Landsat)
-	 */
-	public String getSensorID() {
-		return sensorID;
 	}
 }
