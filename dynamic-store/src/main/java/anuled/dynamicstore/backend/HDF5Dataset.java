@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -18,6 +19,7 @@ public class HDF5Dataset {
 	private IHDF5Reader fp;
 	private Map<Integer, Collection<Cell>> cellsByLevel;
 	private Map<String, Cell> cellsByID;
+	private Set<Product> products;
 
 	protected IHDF5Reader getReader() {
 		return fp;
@@ -26,9 +28,16 @@ public class HDF5Dataset {
 	/** Construct a new HDF5 dataset from a path to an HDF5 file */
 	public HDF5Dataset(String filename) {
 		fp = HDF5Factory.openForReading(filename);
+		populateProducts();
 		// Read all cells into core (but not their data); makes our job easier
 		// later
 		populateCells();
+	}
+	
+	private void populateProducts() {
+		for (String productName : fp.getGroupMembers("/products/")) {
+			products.add(new Product(this, productName));
+		}
 	}
 
 	private void populateCells() {
@@ -119,6 +128,10 @@ public class HDF5Dataset {
 		// If no constraints were specified, return all cells
 		return cellsByLevel.values().stream().flatMap(l -> l.stream())
 				.filter(inRect);
+	}
+	
+	public Set<Product> getProducts() {
+		return products;
 	}
 
 	/**

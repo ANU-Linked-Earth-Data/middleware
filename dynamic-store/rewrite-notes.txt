@@ -13,3 +13,7 @@ backing DGGS format with 10 days left in the project)
 
 * "Dataset" is stupid. Instead, I'm calling the various AGDC datasets which we
   support "products". That should make the code a lot less confusing.
+
+* Here's how I was reading pixels before:
+
+		pixelValue = fp.readDoubleArray(path + "/pixel");

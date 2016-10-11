@@ -10,14 +10,14 @@ import java.time.ZonedDateTime;
 public abstract class Observation {
 	int band;
 	Cell cell;
-	String product;
+	Product product;
 	ZonedDateTime timestamp;
 
-	protected Observation(Cell cell, String product, ZonedDateTime timestamp,
+	protected Observation(Cell cell, Product product, ZonedDateTime timestamp,
 			int band) {
-		if (band < 0 || band >= cell.getNumBands()) {
+		if (band < 0 || band >= product.getNumBands()) {
 			throw new InvalidBandException("Band " + band + " out of range [0, "
-					+ cell.getNumBands() + ")");
+					+ product.getNumBands() + ")");
 		}
 		this.cell = cell;
 		this.band = band;
@@ -44,10 +44,10 @@ public abstract class Observation {
 	}
 
 	/**
-	 * Fetch the name of the AGDC product which this observation corresponds to
-	 * (e.g. LS8_OLI_NBAR for some Landsat 8 data)
+	 * Fetch the AGDC product which this observation corresponds to (e.g.
+	 * LS8_OLI_NBAR for some Landsat 8 data)
 	 */
-	public String getProduct() {
+	public Product getProduct() {
 		return product;
 	}
 

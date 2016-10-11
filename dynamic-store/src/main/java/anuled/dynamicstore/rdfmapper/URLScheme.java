@@ -30,7 +30,7 @@ public class URLScheme {
 	 * resolution) in the dataset.
 	 */
 	public static String observationURL(Observation obs) {
-		String rv = DATA_PREFIX + obs.getProduct() + "/";
+		String rv = DATA_PREFIX + obs.getProduct().getName() + "/";
 
 		// Add date/time
 		OffsetDateTime dt = obs.getTimestamp().toOffsetDateTime();

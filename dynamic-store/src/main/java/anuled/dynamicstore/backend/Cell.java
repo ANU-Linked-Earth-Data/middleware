@@ -1,7 +1,11 @@
 package anuled.dynamicstore.backend;
 
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -18,13 +22,12 @@ import ncsa.hdf.hdf5lib.exceptions.HDF5SymbolTableException;
  */
 public class Cell {
 	private String path, dggsIdent;
-	private double[] pixelValue, centre;
-	private int tileSize;
-	private short invalidValue;
+	private double[] centre;
 	private List<List<Double>> bounds;
 	private double latMin, latMax, longMin, longMax;
 	private double degreesSpanned;
 	HDF5Dataset owner;
+	private Map<Product, Set<ZonedDateTime>> availableProducts;
 
 	/**
 	 * Thrown by the constructor when the given cell is not in the dataset
@@ -37,31 +40,27 @@ public class Cell {
 		this.owner = owner;
 		this.path = path;
 
-		// TODO: Write all the required data reading methods into
-		// HDF5Dataset.java so that I don't need to deal with HDF5 stuff in this
-		// class
 		IHDF5Reader fp = owner.getReader();
 
 		dggsIdent = path.replace("/", "");
-		try {
-			// cache the pixel value because it's (a) small enough to fit in
-			// memory for every cell and (b) helps us figure out whether
-			// this is a data cell or ordinary group
-			pixelValue = fp.readDoubleArray(path + "/pixel");
-		} catch (HDF5SymbolTableException e) {
-			throw new NotACell();
+		for (Product prod : owner.getProducts()) {
+			String groupPath = path + "/" + prod.getName();
+			if (fp.isGroup(groupPath)) {
+				for (String member : fp.getGroupMembers(groupPath)) {
+					if (member.startsWith("pixel@")) {
+						String[] timeStrings = member.split("@", 1);
+						availableProducts
+								.computeIfAbsent(prod,
+										k -> new HashSet<ZonedDateTime>())
+								.add(ZonedDateTime.parse(timeStrings[1]));
+					}
+				}
+			}
 		}
 
 		// centre is (lon, lat)
 		IHDF5DoubleReader doubleReader = fp.float64();
 		centre = doubleReader.getArrayAttr(path, "centre");
-
-		IHDF5ShortReader shortReader = fp.int16();
-		invalidValue = shortReader.getAttr(path, "missing_value");
-
-		IHDF5IntReader intReader = fp.int32();
-		tileSize = intReader.getAttr(path, "tile_size");
-
 		// bounds are list of (lon, lat), IIRC
 		double[][] allBounds = doubleReader.getMatrixAttr(path, "bounds");
 		// We need at least four coordinates to make a non-degenerate shape
@@ -87,30 +86,14 @@ public class Cell {
 
 		// This will be used for resolution calculation
 		degreesSpanned = (latMax - latMin + longMax - longMin) / 2;
-
-		/*
-		 * Other attributes to extract (if needed): lat (f64), lon (f64)
-		 */
 	}
 
-	/** Get the number of bands in observations associated with this cell */
-	public int getNumBands() {
-		return pixelValue.length;
+	protected IHDF5Reader getReader() {
+		return owner.getReader();
 	}
 
-	/** Get all channels of a pixel covering this cell */
-	public double[] pixelData() {
-		// TODO: Rethink this API. Should pixelData and tileData be moved
-		// into the *Observation classes?
-		return pixelValue;
-	}
-
-	/** Get PNG data for a particular band */
-	public byte[] tileData(int band) {
-		IHDF5Reader fp = owner.getReader();
-		IHDF5ByteReader dataReader = fp.uint8();
-		String dsPath = path + "/png_band_" + band;
-		return dataReader.readArray(dsPath);
+	protected String getPath() {
+		return path;
 	}
 
 	/**
@@ -142,16 +125,18 @@ public class Cell {
 	 * Get a <code>PixelObservation</code> for a single pixel covering this
 	 * cell.
 	 */
-	public PixelObservation pixelObservation(int band) {
-		return new PixelObservation(this, band);
+	public PixelObservation pixelObservation(Product product,
+			ZonedDateTime timestamp, int band) {
+		return new PixelObservation(this, product, timestamp, band);
 	}
 
 	/**
 	 * Get a <code>TileObservation</code> for the data tile associated with this
 	 * cell.
 	 */
-	public TileObservation tileObservation(int band) {
-		return new TileObservation(this, band);
+	public TileObservation tileObservation(Product product,
+			ZonedDateTime timestamp, int band) {
+		return new TileObservation(this, product, timestamp, band);
 	}
 
 	/**
@@ -168,6 +153,9 @@ public class Cell {
 	 */
 	public Stream<Observation> observations(Integer band,
 			Class<?> expectedType) {
+		// TODO: I think I can use a stream mapping over availableProducts here.
+		// The rest of the logic will have to be moved inside the mapping
+		// function.
 		Supplier<IntStream> mkRange;
 		if (band == null) {
 			mkRange = () -> {
@@ -214,11 +202,6 @@ public class Cell {
 		return dggsIdent;
 	}
 
-	/** Get the size of the tile associated with this cell */
-	public int tileSize() {
-		return tileSize;
-	}
-
 	/** Get the latitude of the centre of the cell */
 	public double getLat() {
 		return centre[1];
@@ -248,11 +231,6 @@ public class Cell {
 	@Override
 	public String toString() {
 		return "Cell " + getDGGSIdent();
-	}
-
-	/** Returns the int16 value used to mark invalid pixels */
-	public short getInvalidValue() {
-		return invalidValue;
 	}
 
 	public List<List<Double>> getBounds() {
