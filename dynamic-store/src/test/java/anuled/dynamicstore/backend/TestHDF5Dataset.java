@@ -21,7 +21,8 @@ import anuled.dynamicstore.TestData;
 public class TestHDF5Dataset {
 	private HDF5Dataset ds;
 	private static TestData td;
-	ZonedDateTime defaultTimestamp = ZonedDateTime.parse("2013-05-27T23:58:20Z");
+	ZonedDateTime defaultTimestamp = ZonedDateTime
+			.parse("2013-05-27T23:58:20Z");
 	Product defaultProduct;
 
 	@BeforeClass
@@ -96,7 +97,7 @@ public class TestHDF5Dataset {
 	private PixelObservation getPixelObs(Cell cell, int band) {
 		return cell.pixelObservation(defaultProduct, defaultTimestamp, band);
 	}
-	
+
 	private TileObservation getTileObs(Cell cell, int band) {
 		return cell.tileObservation(defaultProduct, defaultTimestamp, band);
 	}
@@ -111,17 +112,6 @@ public class TestHDF5Dataset {
 		cell = ds.dggsCell("R7852");
 		assertNotNull(cell);
 		assertEquals("Cell R7852", cell.toString());
-		
-		// TODO REFAC move this into tests for observation
-		// assertEquals(9, cell.tileSize());
-		
-		
-		// TODO REFAC move this into tests for observation
-		/* double[] reqPixel = new double[] { 4874.4, 4663.9, 4913.4, 5029.4,
-				5192.7, 4063.1, 3048.7 };
-		assertArrayEquals(reqPixel, cell.pixelData(), 1e-1);
-		byte[] td = cell.tileData(3);
-		isPNG(td); */
 
 		/*
 		 * Real cell bounds (approx): [148.89, -34.66], [150.00, -34.66],
@@ -138,16 +128,18 @@ public class TestHDF5Dataset {
 
 	@Test
 	public void testObs() {
-		Cell cell = ds.dggsCell("R78520");
+		Cell cell = ds.dggsCell("R7852");
 		assertNotNull(cell);
 
 		PixelObservation pixelObs = getPixelObs(cell, 3);
 		assertEquals(7, pixelObs.getProduct().getNumBands());
 		double px = pixelObs.getPixel();
-		assertTrue(0 < px && px < (1 << 14));
-		assertEquals(1 / 0.37, pixelObs.getResolution(), 1e-1);
-		assertEquals(6, pixelObs.getPixelLevel());
-		assertEquals(6, pixelObs.getCellLevel());
+		// Pixel values at this location are 874.4, 4663.9, 4913.4, 5029.4,
+		// 5192.7, 4063.1, 3048.7
+		assertEquals(5029.4, px, 1e-1);
+		assertEquals(0.88, pixelObs.getResolution(), 1e-1);
+		assertEquals(5, pixelObs.getPixelLevel());
+		assertEquals(5, pixelObs.getCellLevel());
 
 		assertEquals(ZonedDateTime.parse("2013-05-27T23:58:20Z"),
 				pixelObs.getTimestamp());
@@ -156,10 +148,11 @@ public class TestHDF5Dataset {
 		// Just make sure we're getting PNG back (roughly)
 		byte[] tile = tileObs.getTile();
 		isPNG(tile);
-		assertEquals(6, tileObs.getCellLevel());
-		assertEquals(8, tileObs.getPixelLevel());
+		assertEquals(5, tileObs.getCellLevel());
+		assertEquals(7, tileObs.getPixelLevel());
 		assertEquals(9 * pixelObs.getResolution(), tileObs.getResolution(),
 				1e-1);
+		assertEquals(9, tileObs.getProduct().getTileSize());
 
 		boolean gotException = false;
 		try {
