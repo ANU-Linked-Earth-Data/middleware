@@ -4,8 +4,8 @@ import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.backend.Observation;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 
 public class BoundsProperty implements ObservationProperty {
@@ -28,7 +28,7 @@ public class BoundsProperty implements ObservationProperty {
 
 	@Override
 	public Stream<Node> valuesForObservation(Observation obs) {
-		Node rv = JenaUtil.createLiteralNode(observationToPolyWKT(obs),
+		Node rv = Util.createLiteralNode(observationToPolyWKT(obs),
 				"http://www.opengis.net/ont/geosparql#wktLiteral");
 		return Stream.of(rv);
 	}

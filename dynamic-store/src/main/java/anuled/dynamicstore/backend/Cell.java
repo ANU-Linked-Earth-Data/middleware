@@ -2,6 +2,7 @@ package anuled.dynamicstore.backend;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,8 @@ import java.util.stream.Stream;
 
 import ch.systemsx.cisd.hdf5.IHDF5DoubleReader;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
+import ncsa.hdf.hdf5lib.exceptions.HDF5AttributeException;
+import ncsa.hdf.hdf5lib.exceptions.HDF5SymbolTableException;
 
 /**
  * Class representing a single DGGS cell, and its associated observations
@@ -37,26 +40,14 @@ public class Cell {
 		this.path = path;
 
 		IHDF5Reader fp = owner.getReader();
-
-		dggsIdent = path.replace("/", "");
-		for (Product prod : owner.getProducts()) {
-			String groupPath = path + "/" + prod.getName();
-			if (fp.isGroup(groupPath)) {
-				for (String member : fp.getGroupMembers(groupPath)) {
-					if (member.startsWith("pixel@")) {
-						String[] timeStrings = member.split("@", 1);
-						availableProducts
-								.computeIfAbsent(prod,
-										k -> new HashSet<ZonedDateTime>())
-								.add(ZonedDateTime.parse(timeStrings[1]));
-					}
-				}
-			}
-		}
-
 		// centre is (lon, lat)
 		IHDF5DoubleReader doubleReader = fp.float64();
-		centre = doubleReader.getArrayAttr(path, "centre");
+
+		try {
+			centre = doubleReader.getArrayAttr(path, "centre");
+		} catch (HDF5AttributeException|HDF5SymbolTableException e) {
+			throw new NotACell();
+		}
 		// bounds are list of (lon, lat), IIRC
 		double[][] allBounds = doubleReader.getMatrixAttr(path, "bounds");
 		// We need at least four coordinates to make a non-degenerate shape
@@ -82,6 +73,24 @@ public class Cell {
 
 		// This will be used for resolution calculation
 		degreesSpanned = (latMax - latMin + longMax - longMin) / 2;
+
+		availableProducts = new HashMap<>();
+		dggsIdent = path.replace("/", "");
+		for (Product prod : owner.getProducts()) {
+			String groupPath = path + "/" + prod.getName();
+			if (fp.isGroup(groupPath)) {
+				for (String member : fp.getGroupMembers(groupPath)) {
+					if (member.startsWith("pixel@")) {
+						// we expect format "pixel@<ISO 8601 date>"
+						String[] timeStrings = member.split("@", 2);
+						availableProducts
+								.computeIfAbsent(prod,
+										k -> new HashSet<ZonedDateTime>())
+								.add(ZonedDateTime.parse(timeStrings[1]));
+					}
+				}
+			}
+		}
 	}
 
 	protected IHDF5Reader getReader() {
@@ -134,7 +143,7 @@ public class Cell {
 			ZonedDateTime timestamp, int band) {
 		return new TileObservation(this, product, timestamp, band);
 	}
-	
+
 	// used in method below
 	private Stream<Integer> makeBandRange(Product prod, Integer band) {
 		Supplier<IntStream> mkRange;
@@ -150,7 +159,7 @@ public class Cell {
 				return IntStream.of(band);
 			};
 		}
-		
+
 		return mkRange.get().boxed();
 	}
 
@@ -184,7 +193,7 @@ public class Cell {
 		// cross product:
 		//
 		// (whether observation should be a pixel) x (products)
-		//  x (times for product) x (bands for product)
+		// x (times for product) x (bands for product)
 		//
 		// The last two sets (times and bands for product) depend on the second
 		// one. Further, the first and last sets depend on the argument. That's
@@ -194,16 +203,15 @@ public class Cell {
 				// we want to produce a stream which yields tuples of (product,
 				// time, band, isPixel)
 				Product prod = entry.getKey();
-				
+
 				return makeBandRange(prod, band).flatMap(bandNum -> {
-					return entry.getValue().stream()
-						.map(time -> {
-							if (isPixel) {
-								return pixelObservation(prod, time, bandNum);
-							} else {
-								return tileObservation(prod, time, bandNum);
-							}
-						});
+					return entry.getValue().stream().map(time -> {
+						if (isPixel) {
+							return pixelObservation(prod, time, bandNum);
+						} else {
+							return tileObservation(prod, time, bandNum);
+						}
+					});
 				});
 			});
 		});

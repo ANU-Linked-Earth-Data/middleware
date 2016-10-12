@@ -80,14 +80,16 @@ public class TestURLScheme {
 		PixelObservation pxObs = cell.pixelObservation(product, timestamp, 4);
 		assertNotNull(pxObs);
 		assertEquals(
-				"https://anulinkedearth.org/rdf/observation/2013/05/27/"
+				"https://anulinkedearth.org/rdf/observation/"
+						+ "LS8_OLI_TIRS_NBAR/2013/05/27/"
 						+ "23/58/20/cell/R7852/levelSquare-5/levelPixel-5/band-4",
 				URLScheme.observationURL(pxObs));
 
 		TileObservation tlObs = cell.tileObservation(product, timestamp, 4);
 		assertNotNull(tlObs);
 		assertEquals(
-				"https://anulinkedearth.org/rdf/observation/2013/05/27/"
+				"https://anulinkedearth.org/rdf/observation/"
+						+ "LS8_OLI_TIRS_NBAR/2013/05/27/"
 						+ "23/58/20/cell/R7852/levelSquare-5/levelPixel-7/band-4",
 				URLScheme.observationURL(tlObs));
 	}

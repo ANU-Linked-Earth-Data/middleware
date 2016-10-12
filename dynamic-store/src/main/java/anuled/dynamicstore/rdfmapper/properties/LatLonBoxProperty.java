@@ -1,6 +1,6 @@
 package anuled.dynamicstore.rdfmapper.properties;
 
-import static anuled.dynamicstore.util.JenaUtil.*;
+import static anuled.dynamicstore.Util.*;
 
 import java.util.Optional;
 import java.util.UUID;

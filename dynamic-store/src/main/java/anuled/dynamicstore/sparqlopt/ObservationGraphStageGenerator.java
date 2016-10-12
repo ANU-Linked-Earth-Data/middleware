@@ -22,6 +22,7 @@ import org.apache.jena.sparql.engine.iterator.QueryIterBlockTriples;
 import org.apache.jena.sparql.engine.main.StageGenerator;
 
 import anuled.dynamicstore.ObservationGraph;
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.rdfmapper.properties.LatLonBoxProperty.BoundType;
 import anuled.dynamicstore.rdfmapper.properties.LatMaxProperty;
 import anuled.dynamicstore.rdfmapper.properties.LatMinProperty;
@@ -29,7 +30,6 @@ import anuled.dynamicstore.rdfmapper.properties.LongMaxProperty;
 import anuled.dynamicstore.rdfmapper.properties.LongMinProperty;
 import anuled.dynamicstore.rdfmapper.properties.ObservationProperty;
 import anuled.dynamicstore.rdfmapper.properties.PropertyIndex;
-import anuled.dynamicstore.util.JenaUtil;
 
 /**
  * Jena <code>StageGenerator</code> which handles BGP matching for
@@ -194,7 +194,7 @@ public class ObservationGraphStageGenerator implements StageGenerator {
 		}
 
 		return Optional.of(new Triple(var,
-				JenaUtil.createURINode(type.getURI()), constraintNode));
+				Util.createURINode(type.getURI()), constraintNode));
 	}
 
 	/**

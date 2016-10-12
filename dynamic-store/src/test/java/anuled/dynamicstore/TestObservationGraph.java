@@ -29,7 +29,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import anuled.dynamicstore.backend.Observation;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
 
@@ -47,7 +46,7 @@ public class TestObservationGraph {
 			+ "prefix xsd: <http://www.w3.org/2001/XMLSchema#>\n"
 			+ "prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n";
 	private static String awesomeURI = "https://anulinkedearth.org/rdf/"
-			+ "observation/2013/05/27/23/58/20/cell/R78/levelSquare-3/"
+			+ "observation/LS8_OLI_TIRS_NBAR/2013/05/27/23/58/20/cell/R78/levelSquare-3/"
 			+ "levelPixel-5/band-5";
 
 	private ResultSet runSelect(String query) {
@@ -86,12 +85,12 @@ public class TestObservationGraph {
 
 	@Test
 	public void testMatchingObservations() {
-		Node awesomeNode = JenaUtil.createURINode(awesomeURI);
+		Node awesomeNode = Util.createURINode(awesomeURI);
 		Stream<Observation> allObs = graph.matchingObservations(awesomeNode,
 				null, null);
 		assertEquals(1, allObs.count());
 
-		Node awfulNode = JenaUtil.createURINode("https://this/is/garbage");
+		Node awfulNode = Util.createURINode("https://this/is/garbage");
 		allObs = graph.matchingObservations(awfulNode, null, null);
 		assertEquals(0, allObs.count());
 
@@ -99,14 +98,14 @@ public class TestObservationGraph {
 		assertEquals(84, allObs.count()); // should return everything
 
 		allObs = graph.matchingObservations(null,
-				JenaUtil.createLiteralNode("Oh dear"), null);
+				Util.createLiteralNode("Oh dear"), null);
 		assertEquals(0, allObs.count()); // literal predicates? Nope.
 
 		allObs = graph.matchingObservations(null, RDFS.range.asNode(), null);
 		assertEquals(0, allObs.count()); // nonexistent predicate
 
 		allObs = graph.matchingObservations(
-				JenaUtil.createLiteralNode("something"), null, null);
+				Util.createLiteralNode("something"), null, null);
 		assertEquals(0, allObs.count()); // literal subjects
 	}
 
@@ -120,7 +119,7 @@ public class TestObservationGraph {
 				new Triple(missingVar, RDF.type.asNode(),
 						LED.GridSquare.asNode()),
 				new Triple(missingVar, LED.etmBand.asNode(),
-						JenaUtil.createLiteralNode(2)));
+						Util.createLiteralNode(2)));
 		assertEquals(6, graph.observationURIs(trips).count());
 	}
 
@@ -130,13 +129,13 @@ public class TestObservationGraph {
 		// non-URI predicate should yield no triples
 		assertEquals(0,
 				graph.mapToTriples(obs,
-						JenaUtil.createLiteralNode("some literal"), null)
+						Util.createLiteralNode("some literal"), null)
 						.count());
 		// query for a URI we no know nothing about should yield no triples
 		assertEquals(
 				0, graph
 						.mapToTriples(obs,
-								JenaUtil.createURINode(
+								Util.createURINode(
 										"http://example.com/dontexist"),
 								null)
 						.count());

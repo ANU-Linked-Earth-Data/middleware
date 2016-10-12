@@ -1,7 +1,7 @@
 package anuled.dynamicstore.sparqlopt;
 
+import static anuled.dynamicstore.Util.*;
 import static org.junit.Assert.*;
-import static anuled.dynamicstore.util.JenaUtil.*;
 
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.core.BasicPattern;

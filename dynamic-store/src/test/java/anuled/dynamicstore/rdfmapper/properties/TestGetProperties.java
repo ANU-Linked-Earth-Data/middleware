@@ -19,13 +19,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import anuled.dynamicstore.TestData;
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.backend.Cell;
 import anuled.dynamicstore.backend.HDF5Dataset;
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.backend.PixelObservation;
 import anuled.dynamicstore.backend.Product;
 import anuled.dynamicstore.backend.TileObservation;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.Geo;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
@@ -96,12 +96,12 @@ public class TestGetProperties {
 	}
 
 	private void assertNodeListIsURI(String uri, List<Node> nodeList) {
-		Node nodeURI = JenaUtil.createURINode(uri);
+		Node nodeURI = Util.createURINode(uri);
 		assertNodeListIs(nodeURI, nodeList);
 	}
 
 	private void assertNodeListIsLiteral(Object val, List<Node> nodeList) {
-		Node nodeVal = JenaUtil.createLiteralNode(val);
+		Node nodeVal = Util.createLiteralNode(val);
 		assertNodeListIs(nodeVal, nodeList);
 	}
 

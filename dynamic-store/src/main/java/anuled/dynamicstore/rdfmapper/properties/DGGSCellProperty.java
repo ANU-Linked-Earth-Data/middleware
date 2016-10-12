@@ -4,9 +4,9 @@ import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.rdfmapper.ObservationFilter;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 
 public class DGGSCellProperty implements ObservationProperty {
@@ -19,7 +19,7 @@ public class DGGSCellProperty implements ObservationProperty {
 	@Override
 	public Stream<Node> valuesForObservation(Observation obs) {
 		return Stream.of(
-				JenaUtil.createLiteralNode(obs.getCell().getDGGSIdent()));
+				Util.createLiteralNode(obs.getCell().getDGGSIdent()));
 	}
 	
 	@Override

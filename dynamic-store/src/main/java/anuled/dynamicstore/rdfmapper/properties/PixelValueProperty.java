@@ -4,9 +4,9 @@ import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.backend.PixelObservation;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 
 public class PixelValueProperty implements ObservationProperty {
@@ -21,7 +21,7 @@ public class PixelValueProperty implements ObservationProperty {
 		if (obs instanceof PixelObservation) {
 			PixelObservation pxObs = (PixelObservation) obs;
 			double px = pxObs.getPixel();
-			return Stream.of(JenaUtil.createLiteralNode(px));
+			return Stream.of(Util.createLiteralNode(px));
 		}
 		return Stream.of();
 	}

@@ -3,9 +3,10 @@ package anuled.dynamicstore.rdfmapper.properties;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
+
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.rdfmapper.ObservationFilter;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 
 public class DGGSLevelSquareProperty implements ObservationProperty {
@@ -17,7 +18,7 @@ public class DGGSLevelSquareProperty implements ObservationProperty {
 
 	@Override
 	public Stream<Node> valuesForObservation(Observation obs) {
-		return Stream.of(JenaUtil.createLiteralNode(obs.getCellLevel()));
+		return Stream.of(Util.createLiteralNode(obs.getCellLevel()));
 	}
 	
 	@Override

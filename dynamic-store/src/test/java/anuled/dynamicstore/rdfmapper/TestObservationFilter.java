@@ -1,7 +1,7 @@
 package anuled.dynamicstore.rdfmapper;
 
+import static anuled.dynamicstore.Util.*;
 import static anuled.dynamicstore.rdfmapper.properties.LatLonBoxProperty.BoundType.*;
-import static anuled.dynamicstore.util.JenaUtil.*;
 import static org.junit.Assert.*;
 
 import java.io.IOException;

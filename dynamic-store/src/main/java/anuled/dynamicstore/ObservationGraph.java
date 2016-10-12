@@ -17,7 +17,6 @@ import anuled.dynamicstore.rdfmapper.ObservationMeta;
 import anuled.dynamicstore.rdfmapper.URLScheme;
 import anuled.dynamicstore.rdfmapper.properties.ObservationProperty;
 import anuled.dynamicstore.rdfmapper.properties.PropertyIndex;
-import anuled.dynamicstore.util.JenaUtil;
 
 /**
  * Jena graph which can be queried from satellite data, retrieved from an HDF5
@@ -91,7 +90,7 @@ public final class ObservationGraph extends GraphBase {
 
 		// Return triples associated with every predicate
 		return PropertyIndex.externalPropertyURIs().stream().flatMap(propURI -> {
-			Node propNode = JenaUtil.createURINode(propURI);
+			Node propNode = Util.createURINode(propURI);
 			ObservationProperty prop = PropertyIndex.getProperty(propURI).get();
 			Stream<Node> propVals = prop.valuesForObservation(obs,
 					qbDataSetURI);

@@ -4,8 +4,8 @@ import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.backend.Observation;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 
 public class DGGSLevelPixelProperty implements ObservationProperty {
@@ -17,7 +17,7 @@ public class DGGSLevelPixelProperty implements ObservationProperty {
 
 	@Override
 	public Stream<Node> valuesForObservation(Observation obs) {
-		return Stream.of(JenaUtil.createLiteralNode(obs.getPixelLevel()));
+		return Stream.of(Util.createLiteralNode(obs.getPixelLevel()));
 	}
 
 	// TODO: Figure out how to filter by levelPixel efficiently

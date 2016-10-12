@@ -5,8 +5,8 @@ import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.backend.Observation;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 
 public class TimeProperty implements ObservationProperty {
@@ -22,6 +22,6 @@ public class TimeProperty implements ObservationProperty {
 
 	@Override
 	public Stream<Node> valuesForObservation(Observation obs) {
-		return Stream.of(JenaUtil.createLiteralNode(getTimestamp(obs)));
+		return Stream.of(Util.createLiteralNode(getTimestamp(obs)));
 	}
 }

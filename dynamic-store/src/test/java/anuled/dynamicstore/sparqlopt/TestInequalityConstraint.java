@@ -1,7 +1,7 @@
 package anuled.dynamicstore.sparqlopt;
 
+import static anuled.dynamicstore.Util.*;
 import static anuled.dynamicstore.sparqlopt.InequalityConstraint.*;
-import static anuled.dynamicstore.util.JenaUtil.*;
 import static org.apache.jena.sparql.sse.SSE.*;
 import static org.junit.Assert.*;
 

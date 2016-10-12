@@ -2,6 +2,7 @@ package anuled.dynamicstore.backend;
 
 import java.time.ZonedDateTime;
 
+import anuled.dynamicstore.Util;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
 
 /**
@@ -22,7 +23,7 @@ public final class PixelObservation extends Observation {
 	public double getPixel() {
 		IHDF5Reader fp = cell.getReader();
 		String dsPath = cell.getPath() + "/" + product.getName() + "/pixel"
-				+ "@" + timestamp.toString();
+				+ "@" + Util.canonicalTimeString(timestamp);
 		return fp.readDoubleArray(dsPath)[band];
 	}
 

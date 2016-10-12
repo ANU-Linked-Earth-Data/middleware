@@ -1,9 +1,9 @@
 package anuled.dynamicstore.sparqlopt;
 
+import static anuled.dynamicstore.Util.*;
 import static anuled.dynamicstore.rdfmapper.properties.LatLonBoxProperty.BoundType.*;
 import static anuled.dynamicstore.sparqlopt.ConstraintType.*;
 import static anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.*;
-import static anuled.dynamicstore.util.JenaUtil.*;
 import static org.apache.jena.graph.NodeFactory.*;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -36,6 +36,7 @@ import org.junit.Test;
 import anuled.dynamicstore.ObservationGraph;
 import anuled.dynamicstore.ObservationNode;
 import anuled.dynamicstore.TestData;
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.rdfmapper.properties.BandProperty;
 import anuled.dynamicstore.rdfmapper.properties.LatMaxProperty;
 import anuled.dynamicstore.rdfmapper.properties.LatMinProperty;
@@ -45,7 +46,6 @@ import anuled.dynamicstore.rdfmapper.properties.ObservationProperty;
 import anuled.dynamicstore.rdfmapper.properties.PropertyIndex;
 import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.PropertyMapping;
 import anuled.dynamicstore.sparqlopt.ObservationGraphStageGenerator.TripleBlock;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 import anuled.vocabulary.QB;
 
@@ -108,8 +108,8 @@ public class TestObservationGraphStageGenerator {
 	@Test
 	public void testPartitionBlocks() {
 		Var var1 = Var.alloc("varA"), var2 = Var.alloc("varB");
-		Node fakeURI = JenaUtil.createURINode("http://fake/");
-		Node lit13 = JenaUtil.createLiteralNode(13);
+		Node fakeURI = Util.createURINode("http://fake/");
+		Node lit13 = Util.createLiteralNode(13);
 		Triple varConcBlock1 = new Triple(var1, LED.etmBand.asNode(), lit13),
 				varConcBlock2 = new Triple(var1, QB.dataSet.asNode(), fakeURI),
 				varConcBlock3 = new Triple(var2, RDF.type.asNode(),
@@ -168,10 +168,10 @@ public class TestObservationGraphStageGenerator {
 		Var obsVar = Var.alloc("s");
 		List<Triple> pattern = Arrays.asList(
 				new Triple(obsVar, LED.dggsCell.asNode(),
-						JenaUtil.createLiteralNode("R78")),
+						Util.createLiteralNode("R78")),
 				new Triple(obsVar, RDF.type.asNode(), LED.Pixel.asNode()),
 				new Triple(obsVar, LED.etmBand.asNode(),
-						JenaUtil.createLiteralNode(3)));
+						Util.createLiteralNode(3)));
 		root = QueryIterRoot.create(BindingFactory.binding(), ctx);
 		result = gen.execute(BasicPattern.wrap(pattern), root, ctx);
 		assertTrue(result.hasNext());
@@ -181,7 +181,8 @@ public class TestObservationGraphStageGenerator {
 		assertTrue(outURI.isURI());
 		assertTrue(outURI instanceof ObservationNode);
 		assertEquals(
-				"https://anulinkedearth.org/rdf/observation/2013/05/27/23/58/20/"
+				"https://anulinkedearth.org/rdf/observation/"
+						+ "LS8_OLI_TIRS_NBAR/2013/05/27/23/58/20/"
 						+ "cell/R78/levelSquare-3/levelPixel-3/band-3",
 				outURI.getURI());
 		assertFalse(result.hasNext());
@@ -199,7 +200,7 @@ public class TestObservationGraphStageGenerator {
 
 		// Otherwise, we should get nothing.
 		root = QueryIterSingleton.create(BindingFactory.binding(obsVar,
-				JenaUtil.createURINode("http://fake/")), ctx);
+				Util.createURINode("http://fake/")), ctx);
 		result = gen.execute(BasicPattern.wrap(pattern), root, ctx);
 		assertFalse(result.hasNext());
 	}

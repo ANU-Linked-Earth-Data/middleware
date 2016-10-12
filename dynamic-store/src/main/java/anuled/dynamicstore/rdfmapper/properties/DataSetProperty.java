@@ -4,8 +4,8 @@ import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.backend.Observation;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.QB;
 
 public class DataSetProperty implements ObservationProperty {
@@ -22,7 +22,7 @@ public class DataSetProperty implements ObservationProperty {
 
 	@Override
 	public Stream<Node> valuesForObservation(Observation obs, String qbDataSetURI) {
-		return Stream.of(JenaUtil.createURINode(qbDataSetURI));
+		return Stream.of(Util.createURINode(qbDataSetURI));
 	}
 
 }

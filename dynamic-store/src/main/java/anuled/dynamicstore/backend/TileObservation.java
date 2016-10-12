@@ -2,6 +2,7 @@ package anuled.dynamicstore.backend;
 
 import java.time.ZonedDateTime;
 
+import anuled.dynamicstore.Util;
 import ch.systemsx.cisd.hdf5.IHDF5ByteReader;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
 
@@ -27,7 +28,7 @@ public final class TileObservation extends Observation {
 		IHDF5Reader fp = cell.getReader();
 		IHDF5ByteReader dataReader = fp.uint8();
 		String dsPath = cell.getPath() + "/" + product.getName() + "/png_band_"
-				+ band + "@" + timestamp.toString();
+				+ band + "@" + Util.canonicalTimeString(timestamp);
 		return dataReader.readArray(dsPath);
 	}
 

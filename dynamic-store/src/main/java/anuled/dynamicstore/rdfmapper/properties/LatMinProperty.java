@@ -4,8 +4,8 @@ import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.backend.Observation;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 
 public class LatMinProperty implements ObservationProperty {
@@ -16,6 +16,6 @@ public class LatMinProperty implements ObservationProperty {
 
 	@Override
 	public Stream<Node> valuesForObservation(Observation obs) {
-		return Stream.of(JenaUtil.createLiteralNode(obs.getCell().getLatMin()));
+		return Stream.of(Util.createLiteralNode(obs.getCell().getLatMin()));
 	}
 }

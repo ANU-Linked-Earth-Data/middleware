@@ -4,8 +4,8 @@ import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.backend.Observation;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 
 public class ResolutionProperty implements ObservationProperty {
@@ -17,6 +17,6 @@ public class ResolutionProperty implements ObservationProperty {
 	@Override
 	public Stream<Node> valuesForObservation(Observation obs) {
 		double res = obs.getResolution();
-		return Stream.of(JenaUtil.createLiteralNode(res));
+		return Stream.of(Util.createLiteralNode(res));
 	}
 }

@@ -5,9 +5,9 @@ import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 
+import anuled.dynamicstore.Util;
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.backend.TileObservation;
-import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.LED;
 
 public class ImageDataProperty implements ObservationProperty {
@@ -23,7 +23,7 @@ public class ImageDataProperty implements ObservationProperty {
 			TileObservation tileObs = (TileObservation) obs;
 			String b64Data = Base64.getEncoder().encodeToString(tileObs.getTile());
 			String dataURI = "data:image/png;base64," + b64Data;
-			return Stream.of(JenaUtil.createURINode(dataURI));
+			return Stream.of(Util.createURINode(dataURI));
 		}
 		// For PixelObservations, we can't do anything
 		return Stream.of();
