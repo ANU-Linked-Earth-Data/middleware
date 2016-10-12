@@ -15,27 +15,29 @@ import anuled.dynamicstore.TestData;
 import anuled.dynamicstore.backend.Cell;
 import anuled.dynamicstore.backend.HDF5Dataset;
 import anuled.dynamicstore.backend.PixelObservation;
+import anuled.dynamicstore.backend.Product;
 import anuled.dynamicstore.backend.TileObservation;
 import anuled.dynamicstore.rdfmapper.URLScheme;
 
-public class TestURLScheme {private HDF5Dataset ds;
+public class TestURLScheme {
+	private HDF5Dataset ds;
 	private static TestData td;
-	
+
 	@BeforeClass
 	public static void setUpClass() throws IOException {
 		td = new TestData();
 	}
-	
+
 	@AfterClass
 	public static void tearDownClass() {
 		td.dispose();
 	}
-	
+
 	@Before
 	public void setUp() {
 		ds = new HDF5Dataset(td.getPath());
 	}
-	
+
 	@After
 	public void tearDown() {
 		ds.dispose();
@@ -43,7 +45,8 @@ public class TestURLScheme {private HDF5Dataset ds;
 
 	@Test
 	public void testParseURL() {
-		String[] failureCases = { "https://anulinkedearth.org/rdf/observation/2012/03/",
+		String[] failureCases = {
+				"https://anulinkedearth.org/rdf/observation/LS8_OLI_TIRS_NBAR/2012/03/",
 				"http://google.com/", "!*(malformed(*A" };
 		for (String failureCase : failureCases) {
 			try {
@@ -55,10 +58,10 @@ public class TestURLScheme {private HDF5Dataset ds;
 					false);
 		}
 
-		String passCase = "https://anulinkedearth.org/rdf/observation/2012/03/02/23/13/42/cell/R91/"
+		String passCase = "https://anulinkedearth.org/rdf/observation/"
+				+ "LS8_OLI_TIRS_NBAR/2012/03/02/23/13/42/cell/R91/"
 				+ "levelSquare-3/levelPixel-4/band-5";
-		ObservationMeta meta = URLScheme
-				.parseObservationURL(passCase);
+		ObservationMeta meta = URLScheme.parseObservationURL(passCase);
 		assertEquals("R91", meta.cell);
 		assertEquals(3, meta.levelSquare);
 		assertEquals(4, meta.levelPixel);
@@ -71,20 +74,24 @@ public class TestURLScheme {private HDF5Dataset ds;
 	public void testURLs() {
 		Cell cell = ds.dggsCell("R7852");
 		assertNotNull(cell);
+		ZonedDateTime timestamp = ZonedDateTime.parse("2013-05-27T23:58:20Z");
+		Product product = new Product(ds, "LS8_OLI_TIRS_NBAR");
 
-		PixelObservation pxObs = cell.pixelObservation(4);
+		PixelObservation pxObs = cell.pixelObservation(product, timestamp, 4);
 		assertNotNull(pxObs);
 		assertEquals(
-				"https://anulinkedearth.org/rdf/observation/2013/05/27/23/58/20/cell/R7852/levelSquare-5/levelPixel-5/band-4",
+				"https://anulinkedearth.org/rdf/observation/2013/05/27/"
+						+ "23/58/20/cell/R7852/levelSquare-5/levelPixel-5/band-4",
 				URLScheme.observationURL(pxObs));
 
-		TileObservation tlObs = cell.tileObservation(4);
+		TileObservation tlObs = cell.tileObservation(product, timestamp, 4);
 		assertNotNull(tlObs);
 		assertEquals(
-				"https://anulinkedearth.org/rdf/observation/2013/05/27/23/58/20/cell/R7852/levelSquare-5/levelPixel-7/band-4",
+				"https://anulinkedearth.org/rdf/observation/2013/05/27/"
+						+ "23/58/20/cell/R7852/levelSquare-5/levelPixel-7/band-4",
 				URLScheme.observationURL(tlObs));
 	}
-	
+
 	@Test
 	public void testConstructor() {
 		// junk test to get coverage

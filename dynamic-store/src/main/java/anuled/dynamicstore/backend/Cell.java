@@ -10,12 +10,8 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import ch.systemsx.cisd.hdf5.IHDF5ByteReader;
 import ch.systemsx.cisd.hdf5.IHDF5DoubleReader;
-import ch.systemsx.cisd.hdf5.IHDF5IntReader;
 import ch.systemsx.cisd.hdf5.IHDF5Reader;
-import ch.systemsx.cisd.hdf5.IHDF5ShortReader;
-import ncsa.hdf.hdf5lib.exceptions.HDF5SymbolTableException;
 
 /**
  * Class representing a single DGGS cell, and its associated observations
@@ -138,6 +134,25 @@ public class Cell {
 			ZonedDateTime timestamp, int band) {
 		return new TileObservation(this, product, timestamp, band);
 	}
+	
+	// used in method below
+	private Stream<Integer> makeBandRange(Product prod, Integer band) {
+		Supplier<IntStream> mkRange;
+		if (band == null) {
+			mkRange = () -> {
+				return IntStream.range(0, prod.getNumBands());
+			};
+		} else if (band < 0 || band >= prod.getNumBands()) {
+			// can only get valid bands
+			return Stream.of();
+		} else {
+			mkRange = () -> {
+				return IntStream.of(band);
+			};
+		}
+		
+		return mkRange.get().boxed();
+	}
 
 	/**
 	 * Yield a stream of pixel and tile observations across all bands of the
@@ -153,46 +168,45 @@ public class Cell {
 	 */
 	public Stream<Observation> observations(Integer band,
 			Class<?> expectedType) {
-		// TODO: I think I can use a stream mapping over availableProducts here.
-		// The rest of the logic will have to be moved inside the mapping
-		// function.
-		Supplier<IntStream> mkRange;
-		if (band == null) {
-			mkRange = () -> {
-				return IntStream.range(0, getNumBands());
-			};
-		} else if (band < 0 || band >= getNumBands()) {
-			// can only get valid bands
-			return Stream.of();
-		} else {
-			mkRange = () -> {
-				return IntStream.of(band);
-			};
-		}
-
-		boolean expectsPixel;
+		Stream<Boolean> isPixelStream;
 		if (expectedType == null) {
-			expectsPixel = false; // arbitrary, fixes linter warnings
+			isPixelStream = Stream.of(true, false);
 		} else if (expectedType.equals(PixelObservation.class)) {
-			expectsPixel = true;
+			isPixelStream = Stream.of(true);
 		} else if (expectedType.equals(TileObservation.class)) {
-			expectsPixel = false;
+			isPixelStream = Stream.of(false);
 		} else {
 			throw new RuntimeException("Expected type must be "
 					+ "PixelObservation or TileObservation");
 		}
 
-		// Now construct the return stream
-		Stream<Observation> rvStream = Stream.of();
-		if (expectedType == null || !expectsPixel) {
-			rvStream = Stream.concat(rvStream,
-					mkRange.get().mapToObj(this::tileObservation));
-		}
-		if (expectedType == null || expectsPixel) {
-			rvStream = Stream.concat(rvStream,
-					mkRange.get().mapToObj(this::pixelObservation));
-		}
-		return rvStream;
+		// This is hideous, unfortunately. I'm trying to compute the following
+		// cross product:
+		//
+		// (whether observation should be a pixel) x (products)
+		//  x (times for product) x (bands for product)
+		//
+		// The last two sets (times and bands for product) depend on the second
+		// one. Further, the first and last sets depend on the argument. That's
+		// why there are so many levels of flatMap here.
+		return isPixelStream.flatMap(isPixel -> {
+			return availableProducts.entrySet().stream().flatMap(entry -> {
+				// we want to produce a stream which yields tuples of (product,
+				// time, band, isPixel)
+				Product prod = entry.getKey();
+				
+				return makeBandRange(prod, band).flatMap(bandNum -> {
+					return entry.getValue().stream()
+						.map(time -> {
+							if (isPixel) {
+								return pixelObservation(prod, time, bandNum);
+							} else {
+								return tileObservation(prod, time, bandNum);
+							}
+						});
+				});
+			});
+		});
 	}
 
 	/**

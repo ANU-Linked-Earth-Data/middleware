@@ -5,6 +5,7 @@ import static anuled.dynamicstore.util.JenaUtil.*;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,6 +22,7 @@ import anuled.dynamicstore.backend.Cell;
 import anuled.dynamicstore.backend.HDF5Dataset;
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.backend.PixelObservation;
+import anuled.dynamicstore.backend.Product;
 import anuled.dynamicstore.rdfmapper.properties.ObservationProperty;
 import anuled.dynamicstore.rdfmapper.properties.PropertyIndex;
 import anuled.vocabulary.LED;
@@ -75,8 +77,10 @@ public class TestObservationFilter {
 	@Test
 	public void testGetFromMeta() throws CloneNotSupportedException {
 		Cell cell = ds.dggsCell("R7852");
-		checkObservation(cell.pixelObservation(4));
-		checkObservation(cell.tileObservation(3));
+		ZonedDateTime timestamp = ZonedDateTime.parse("2013-05-27T23:58:20Z");
+		Product product = new Product(ds, "LS8_OLI_TIRS_NBAR");
+		checkObservation(cell.pixelObservation(product, timestamp, 4));
+		checkObservation(cell.tileObservation(product, timestamp, 3));
 	}
 
 	private void checkTypeFilterCount(int expected, Resource val) {

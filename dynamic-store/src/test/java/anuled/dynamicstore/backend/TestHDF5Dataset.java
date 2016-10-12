@@ -21,6 +21,8 @@ import anuled.dynamicstore.TestData;
 public class TestHDF5Dataset {
 	private HDF5Dataset ds;
 	private static TestData td;
+	ZonedDateTime defaultTimestamp = ZonedDateTime.parse("2013-05-27T23:58:20Z");
+	Product defaultProduct;
 
 	@BeforeClass
 	public static void setUpClass() throws IOException {
@@ -35,6 +37,7 @@ public class TestHDF5Dataset {
 	@Before
 	public void setUp() {
 		ds = new HDF5Dataset(td.getPath());
+		defaultProduct = new Product(ds, "LS8_OLI_TIRS_NBAR");
 	}
 
 	@After
@@ -54,8 +57,7 @@ public class TestHDF5Dataset {
 		assertEquals(6, ds.cells(null, null, null, null, null, null).count());
 
 		Set<String> cellIDs = ds.cells(null, null, null, 149.3, -35.5, null)
-				.map(cell -> cell.getDGGSIdent())
-				.collect(Collectors.toSet());
+				.map(cell -> cell.getDGGSIdent()).collect(Collectors.toSet());
 		Set<String> expectedCellIDs = new HashSet<>();
 		expectedCellIDs.add("R78520");
 		expectedCellIDs.add("R78523");
@@ -68,7 +70,6 @@ public class TestHDF5Dataset {
 		String dggsIdent = "R78520";
 		Cell cell = ds.dggsCell(dggsIdent);
 		assertNotNull(cell);
-		assertEquals(7, cell.getNumBands());
 		assertEquals(dggsIdent, cell.getDGGSIdent());
 		assertEquals(-34.85536, cell.getLat(), 1e-5);
 		assertEquals(149.07407, cell.getLon(), 1e-5);
@@ -76,9 +77,6 @@ public class TestHDF5Dataset {
 		// levels from the 4-cell level, so this cell should span ~360/(4*3^5)
 		// degrees (very rough)
 		assertEquals(0.37, cell.getDegreesSpanned(), 1e-2);
-		// FIXME: the resampler should output -999 or something for invalid
-		// values, but right now it's outputting 0 :(
-		assertEquals(0, cell.getInvalidValue());
 		List<List<Double>> bounds = cell.getBounds();
 		// List should be of size 5 and each element should be of size 2
 		assertEquals(5, bounds.size());
@@ -95,6 +93,14 @@ public class TestHDF5Dataset {
 		}
 	}
 
+	private PixelObservation getPixelObs(Cell cell, int band) {
+		return cell.pixelObservation(defaultProduct, defaultTimestamp, band);
+	}
+	
+	private TileObservation getTileObs(Cell cell, int band) {
+		return cell.tileObservation(defaultProduct, defaultTimestamp, band);
+	}
+
 	@Test
 	public void testCell() {
 		// Make sure that getting an invalid cell returns null
@@ -104,13 +110,18 @@ public class TestHDF5Dataset {
 		// Now proceed with a valid cell
 		cell = ds.dggsCell("R7852");
 		assertNotNull(cell);
-		assertEquals(9, cell.tileSize());
 		assertEquals("Cell R7852", cell.toString());
-		double[] reqPixel = new double[] { 4874.4, 4663.9, 4913.4, 5029.4,
+		
+		// TODO REFAC move this into tests for observation
+		// assertEquals(9, cell.tileSize());
+		
+		
+		// TODO REFAC move this into tests for observation
+		/* double[] reqPixel = new double[] { 4874.4, 4663.9, 4913.4, 5029.4,
 				5192.7, 4063.1, 3048.7 };
 		assertArrayEquals(reqPixel, cell.pixelData(), 1e-1);
 		byte[] td = cell.tileData(3);
-		isPNG(td);
+		isPNG(td); */
 
 		/*
 		 * Real cell bounds (approx): [148.89, -34.66], [150.00, -34.66],
@@ -130,17 +141,18 @@ public class TestHDF5Dataset {
 		Cell cell = ds.dggsCell("R78520");
 		assertNotNull(cell);
 
-		PixelObservation pixelObs = cell.pixelObservation(3);
+		PixelObservation pixelObs = getPixelObs(cell, 3);
+		assertEquals(7, pixelObs.getProduct().getNumBands());
 		double px = pixelObs.getPixel();
 		assertTrue(0 < px && px < (1 << 14));
 		assertEquals(1 / 0.37, pixelObs.getResolution(), 1e-1);
 		assertEquals(6, pixelObs.getPixelLevel());
 		assertEquals(6, pixelObs.getCellLevel());
-		
+
 		assertEquals(ZonedDateTime.parse("2013-05-27T23:58:20Z"),
 				pixelObs.getTimestamp());
 
-		TileObservation tileObs = cell.tileObservation(4);
+		TileObservation tileObs = getTileObs(cell, 4);
 		// Just make sure we're getting PNG back (roughly)
 		byte[] tile = tileObs.getTile();
 		isPNG(tile);
@@ -151,7 +163,7 @@ public class TestHDF5Dataset {
 
 		boolean gotException = false;
 		try {
-			cell.pixelObservation(12);
+			getPixelObs(cell, 12);
 		} catch (InvalidBandException e) {
 			gotException = true;
 		}
@@ -161,8 +173,8 @@ public class TestHDF5Dataset {
 	@Test
 	public void testToString() {
 		Cell cell = ds.dggsCell("R78520");
-		PixelObservation pixelObs = cell.pixelObservation(3);
-		TileObservation tileObs = cell.tileObservation(3);
+		PixelObservation pixelObs = getPixelObs(cell, 3);
+		TileObservation tileObs = getTileObs(cell, 3);
 		String expected = "Observation: band=3, cell=R78520";
 		assertEquals(expected + ", type=pixel", pixelObs.toString());
 		assertEquals(expected + ", type=tile", tileObs.toString());
@@ -171,8 +183,8 @@ public class TestHDF5Dataset {
 	@Test
 	public void testEquals() {
 		Cell cell = ds.dggsCell("R78520");
-		PixelObservation pixelObs = cell.pixelObservation(3);
-		TileObservation tileObs = cell.tileObservation(3);
+		PixelObservation pixelObs = getPixelObs(cell, 3);
+		TileObservation tileObs = getTileObs(cell, 3);
 
 		// Start with some cell checks
 		assertTrue(cell.equals(cell));
@@ -184,13 +196,13 @@ public class TestHDF5Dataset {
 		assertTrue(!pixelObs.equals(tileObs));
 		assertTrue(!tileObs.equals(pixelObs));
 		// Reconstructing the same observation should work
-		TileObservation otherTile = ds.dggsCell("R78520").tileObservation(3);
+		TileObservation otherTile = getTileObs(ds.dggsCell("R78520"), 3);
 		assertTrue(tileObs.equals(otherTile));
 		// Bands should be equal
-		otherTile = ds.dggsCell("R78520").tileObservation(4);
+		otherTile = getTileObs(ds.dggsCell("R78520"), 4);
 		assertTrue(!tileObs.equals(otherTile));
 		// Cell IDs should also be equal
-		otherTile = ds.dggsCell("R7852").tileObservation(3);
+		otherTile = getTileObs(ds.dggsCell("R7852"), 3);
 		assertTrue(!tileObs.equals(otherTile));
 	}
 }

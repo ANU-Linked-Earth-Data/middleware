@@ -3,6 +3,7 @@ package anuled.dynamicstore.rdfmapper.properties;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.time.ZonedDateTime;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,6 +23,7 @@ import anuled.dynamicstore.backend.Cell;
 import anuled.dynamicstore.backend.HDF5Dataset;
 import anuled.dynamicstore.backend.Observation;
 import anuled.dynamicstore.backend.PixelObservation;
+import anuled.dynamicstore.backend.Product;
 import anuled.dynamicstore.backend.TileObservation;
 import anuled.dynamicstore.util.JenaUtil;
 import anuled.vocabulary.Geo;
@@ -49,8 +51,10 @@ public class TestGetProperties {
 	public void setUp() {
 		ds = new HDF5Dataset(td.getPath());
 		cell = ds.dggsCell("R7852");
-		pxObs = cell.pixelObservation(4);
-		tlObs = cell.tileObservation(5);
+		ZonedDateTime timestamp = ZonedDateTime.parse("2013-05-27T23:58:20Z");
+		Product product = new Product(ds, "LS8_OLI_TIRS_NBAR");
+		pxObs = cell.pixelObservation(product, timestamp, 4);
+		tlObs = cell.tileObservation(product, timestamp, 5);
 	}
 
 	@After
