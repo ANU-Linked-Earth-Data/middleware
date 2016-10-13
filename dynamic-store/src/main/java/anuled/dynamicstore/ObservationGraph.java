@@ -12,6 +12,8 @@ import org.apache.jena.util.iterator.WrappedIterator;
 
 import anuled.dynamicstore.backend.HDF5Dataset;
 import anuled.dynamicstore.backend.Observation;
+import anuled.dynamicstore.backend.Product;
+import anuled.dynamicstore.rdfmapper.MetadataFactory;
 import anuled.dynamicstore.rdfmapper.ObservationFilter;
 import anuled.dynamicstore.rdfmapper.ObservationMeta;
 import anuled.dynamicstore.rdfmapper.URLScheme;
@@ -30,18 +32,18 @@ public final class ObservationGraph extends GraphBase {
 	 * searched first on any query (we can speed that up later)
 	 */
 	private HDF5Dataset reader;
-	private String qbDataSetURI;
+	private String qbDataSetPrefix;
 
-	public ObservationGraph(String h5Filename, String qbDataSetURI) {
+	public ObservationGraph(String h5Filename, String qbDataSetPrefix) {
 		super();
 		reader = new HDF5Dataset(h5Filename);
-		this.qbDataSetURI = qbDataSetURI;
+		this.qbDataSetPrefix = qbDataSetPrefix;
 	}
 
-	public ObservationGraph(HDF5Dataset reader, String qbDataSetURI) {
+	public ObservationGraph(HDF5Dataset reader, String qbDataSetPrefix) {
 		super();
 		this.reader = reader;
-		this.qbDataSetURI = qbDataSetURI;
+		this.qbDataSetPrefix = qbDataSetPrefix;
 	}
 
 	/**
@@ -54,6 +56,11 @@ public final class ObservationGraph extends GraphBase {
 			return true;
 		}
 		return tObj.equals(obj);
+	}
+	
+	/** Get the qb:Dataset URI for a given product */
+	private String datasetFor(Product prod) {
+		return MetadataFactory.datasetURI(qbDataSetPrefix, prod);
 	}
 
 	/**
@@ -80,7 +87,7 @@ public final class ObservationGraph extends GraphBase {
 						.getProperty(pred.getURI());
 				if (maybeProp.isPresent()) {
 					Stream<Node> vals = maybeProp.get()
-							.valuesForObservation(obs, qbDataSetURI);
+							.valuesForObservation(obs, datasetFor(obs.getProduct()));
 					return vals.map(val -> new Triple(obsNode, pred, val))
 							.filter(t -> objMatches(t, obj));
 				}
@@ -93,7 +100,7 @@ public final class ObservationGraph extends GraphBase {
 			Node propNode = Util.createURINode(propURI);
 			ObservationProperty prop = PropertyIndex.getProperty(propURI).get();
 			Stream<Node> propVals = prop.valuesForObservation(obs,
-					qbDataSetURI);
+					datasetFor(obs.getProduct()));
 			return propVals
 					.map(objNode -> new Triple(obsNode, propNode, objNode));
 		}).filter(t -> objMatches(t, obj));
