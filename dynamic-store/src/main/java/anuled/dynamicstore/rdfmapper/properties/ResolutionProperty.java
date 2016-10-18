@@ -15,7 +15,7 @@ public class ResolutionProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Node> valuesForObservation(Observation obs) {
+	public Stream<Node> valuesForObservation(Observation obs, String qbDatasetURI) {
 		double res = obs.getResolution();
 		return Stream.of(Util.createLiteralNode(res));
 	}

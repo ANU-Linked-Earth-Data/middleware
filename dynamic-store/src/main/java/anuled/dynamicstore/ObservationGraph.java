@@ -57,7 +57,7 @@ public final class ObservationGraph extends GraphBase {
 		}
 		return tObj.equals(obj);
 	}
-	
+
 	/** Get the qb:Dataset URI for a given product */
 	private String datasetFor(Product prod) {
 		return MetadataFactory.datasetURI(qbDataSetPrefix, prod);
@@ -86,8 +86,8 @@ public final class ObservationGraph extends GraphBase {
 				Optional<ObservationProperty> maybeProp = PropertyIndex
 						.getProperty(pred.getURI());
 				if (maybeProp.isPresent()) {
-					Stream<Node> vals = maybeProp.get()
-							.valuesForObservation(obs, datasetFor(obs.getProduct()));
+					Stream<Node> vals = maybeProp.get().valuesForObservation(
+							obs, datasetFor(obs.getProduct()));
 					return vals.map(val -> new Triple(obsNode, pred, val))
 							.filter(t -> objMatches(t, obj));
 				}
@@ -96,14 +96,16 @@ public final class ObservationGraph extends GraphBase {
 		}
 
 		// Return triples associated with every predicate
-		return PropertyIndex.externalPropertyURIs().stream().flatMap(propURI -> {
-			Node propNode = Util.createURINode(propURI);
-			ObservationProperty prop = PropertyIndex.getProperty(propURI).get();
-			Stream<Node> propVals = prop.valuesForObservation(obs,
-					datasetFor(obs.getProduct()));
-			return propVals
-					.map(objNode -> new Triple(obsNode, propNode, objNode));
-		}).filter(t -> objMatches(t, obj));
+		return PropertyIndex.externalPropertyURIs().stream()
+				.flatMap(propURI -> {
+					Node propNode = Util.createURINode(propURI);
+					ObservationProperty prop = PropertyIndex
+							.getProperty(propURI).get();
+					Stream<Node> propVals = prop.valuesForObservation(obs,
+							datasetFor(obs.getProduct()));
+					return propVals.map(
+							objNode -> new Triple(obsNode, propNode, objNode));
+				}).filter(t -> objMatches(t, obj));
 	}
 
 	/**
@@ -122,7 +124,8 @@ public final class ObservationGraph extends GraphBase {
 			return null;
 		}
 		// Might be null if it doesn't exist in the dataset
-		return ObservationFilter.retrieveFromMeta(meta, reader);
+		return ObservationFilter.retrieveFromMeta(meta, reader,
+				qbDataSetPrefix);
 	}
 
 	private Stream<Observation> getAllObservations() {
@@ -161,8 +164,8 @@ public final class ObservationGraph extends GraphBase {
 				if (maybeProp.isPresent()) {
 					ObservationProperty prop = maybeProp.get();
 					if (obj != null) {
-						ObservationFilter filter = new ObservationFilter(
-								reader);
+						ObservationFilter filter = new ObservationFilter(reader,
+								qbDataSetPrefix);
 						filter.constrainProperty(prop.getURI(), obj);
 						return filter.execute();
 					} else {
@@ -180,7 +183,8 @@ public final class ObservationGraph extends GraphBase {
 		// Get the observation URIs matching the given pattern
 		// All subjects in the pattern must be non-concrete; all
 		// predicates and objects must be concrete.
-		ObservationFilter filter = new ObservationFilter(reader);
+		ObservationFilter filter = new ObservationFilter(reader,
+				qbDataSetPrefix);
 
 		for (Triple trip : pattern) {
 			String predURI = trip.getPredicate().getURI();

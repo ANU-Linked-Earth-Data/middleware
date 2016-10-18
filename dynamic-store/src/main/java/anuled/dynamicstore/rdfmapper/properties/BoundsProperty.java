@@ -27,7 +27,7 @@ public class BoundsProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Node> valuesForObservation(Observation obs) {
+	public Stream<Node> valuesForObservation(Observation obs, String qbDatasetURI) {
 		Node rv = Util.createLiteralNode(observationToPolyWKT(obs),
 				"http://www.opengis.net/ont/geosparql#wktLiteral");
 		return Stream.of(rv);

@@ -17,7 +17,7 @@ public class DGGSCellProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Node> valuesForObservation(Observation obs) {
+	public Stream<Node> valuesForObservation(Observation obs, String qbDatasetURI) {
 		return Stream.of(
 				Util.createLiteralNode(obs.getCell().getDGGSIdent()));
 	}

@@ -18,7 +18,7 @@ public class ImageDataProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Node> valuesForObservation(Observation obs) {
+	public Stream<Node> valuesForObservation(Observation obs, String qbDatasetURI) {
 		if (obs instanceof TileObservation){
 			TileObservation tileObs = (TileObservation) obs;
 			String b64Data = Base64.getEncoder().encodeToString(tileObs.getTile());

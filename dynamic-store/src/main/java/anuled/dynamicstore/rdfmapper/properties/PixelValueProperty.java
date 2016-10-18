@@ -17,7 +17,7 @@ public class PixelValueProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Node> valuesForObservation(Observation obs) {
+	public Stream<Node> valuesForObservation(Observation obs, String qbDatasetURI) {
 		if (obs instanceof PixelObservation) {
 			PixelObservation pxObs = (PixelObservation) obs;
 			double px = pxObs.getPixel();

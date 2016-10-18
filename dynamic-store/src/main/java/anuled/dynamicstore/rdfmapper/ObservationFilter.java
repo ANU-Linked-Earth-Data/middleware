@@ -35,12 +35,15 @@ public class ObservationFilter {
 	boolean empty = false;
 	List<Pair<ObservationProperty, Node>> naiveConstraints = new ArrayList<>();
 	HDF5Dataset dataset;
+	String qbDatasetPrefix;
 
-	public ObservationFilter(HDF5Dataset dataset) {
+	public ObservationFilter(HDF5Dataset dataset, String qbDatasetPrefix) {
 		this.dataset = dataset;
+		this.qbDatasetPrefix = qbDatasetPrefix;
 	}
 
-	public ObservationFilter constrainProperty(String propURI, Node expectedValue) {
+	public ObservationFilter constrainProperty(String propURI,
+			Node expectedValue) {
 		// Expected value must be URL/literal/blank
 		assert expectedValue.isConcrete();
 		Optional<ObservationProperty> maybeProp = PropertyIndex
@@ -120,7 +123,8 @@ public class ObservationFilter {
 		return this;
 	}
 
-	public ObservationFilter constrainNaively(ObservationProperty prop, Node value) {
+	public ObservationFilter constrainNaively(ObservationProperty prop,
+			Node value) {
 		// Optimisation opportunity: check for conflicting values (assuming that
 		// the constraints are AND rather than OR)
 		naiveConstraints.add(Pair.of(prop, value));
@@ -141,10 +145,13 @@ public class ObservationFilter {
 			Stream<Observation> observations = cells
 					.flatMap(c -> c.observations(reqBandNum, reqClass))
 					.filter(o -> {
+						String qbDatasetURI = MetadataFactory
+								.datasetURI(qbDatasetPrefix, o.getProduct());
 						for (Pair<ObservationProperty, Node> pair : naiveConstraints) {
 							ObservationProperty prop = pair.getLeft();
 							Node expected = pair.getRight();
-							Stream<Node> actual = prop.valuesForObservation(o);
+							Stream<Node> actual = prop.valuesForObservation(o,
+									qbDatasetURI);
 							if (!actual.anyMatch(v -> expected.equals(v))) {
 								return false;
 							}
@@ -156,8 +163,9 @@ public class ObservationFilter {
 	}
 
 	public static Observation retrieveFromMeta(ObservationMeta meta,
-			HDF5Dataset dataset) {
-		ObservationFilter filter = new ObservationFilter(dataset);
+			HDF5Dataset dataset, String qbDatasetPrefix) {
+		ObservationFilter filter = new ObservationFilter(dataset,
+				qbDatasetPrefix);
 		filter.constrainBandNum(meta.band);
 		filter.constrainCellID(meta.cell);
 		filter.constrainLevel(meta.levelSquare);

@@ -18,7 +18,7 @@ public class RDFTypeProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Node> valuesForObservation(Observation obs) {
+	public Stream<Node> valuesForObservation(Observation obs, String qbDatasetURI) {
 		Builder<Node> builder = Stream.builder();
 		builder.add(QB.Observation.asNode());
 		if (obs.getPixelLevel() == obs.getCellLevel()) {

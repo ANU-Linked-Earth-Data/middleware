@@ -10,14 +10,7 @@ import anuled.dynamicstore.rdfmapper.ObservationFilter;
 public interface ObservationProperty {
 	public String getURI();
 
-	public Stream<Node> valuesForObservation(Observation obs);
-
-	// yeah, this is hacky; I really should have the default the other way
-	// around, or maybe nest interfaces :/
-	public default Stream<Node> valuesForObservation(Observation obs,
-			String qbDataSetURI) {
-		return valuesForObservation(obs);
-	}
+	public Stream<Node> valuesForObservation(Observation obs, String qbDatasetURI);
 
 	public default void applyToFilter(ObservationFilter filter, Node value) {
 		filter.constrainNaively(this, value);

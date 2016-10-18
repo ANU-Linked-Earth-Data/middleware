@@ -46,7 +46,7 @@ public class TestObservationFilter {
 	@Before
 	public void setUp() {
 		ds = new HDF5Dataset(td.getPath());
-		filter = new ObservationFilter(ds);
+		filter = new ObservationFilter(ds, "http://fake/");
 	}
 
 	@After
@@ -60,18 +60,18 @@ public class TestObservationFilter {
 		// observationMeta
 		String obsURL = URLScheme.observationURL(obs);
 		ObservationMeta meta = URLScheme.parseObservationURL(obsURL);
-		Observation shouldMatch = ObservationFilter.retrieveFromMeta(meta, ds);
+		Observation shouldMatch = ObservationFilter.retrieveFromMeta(meta, ds, "http://fake/");
 		assertNotNull(shouldMatch);
 		assertTrue(obs.equals(shouldMatch));
 
 		// Try retrieving some junk, just because we can
 		ObservationMeta brokenCellMeta = meta.clone();
 		brokenCellMeta.cell = brokenCellMeta.cell + "AKSJD";
-		assertNull(ObservationFilter.retrieveFromMeta(brokenCellMeta, ds));
+		assertNull(ObservationFilter.retrieveFromMeta(brokenCellMeta, ds, "http://fake/"));
 
 		ObservationMeta brokenLevelMeta = meta.clone();
 		brokenLevelMeta.levelPixel = -1;
-		assertNull(ObservationFilter.retrieveFromMeta(brokenLevelMeta, ds));
+		assertNull(ObservationFilter.retrieveFromMeta(brokenLevelMeta, ds, "http://fake/"));
 	}
 
 	@Test
@@ -84,7 +84,7 @@ public class TestObservationFilter {
 	}
 
 	private void checkTypeFilterCount(int expected, Resource val) {
-		filter = new ObservationFilter(ds);
+		filter = new ObservationFilter(ds, "http://fake/");
 		ObservationProperty typeFilter = PropertyIndex
 				.getProperty(RDF.type.getURI()).get();
 		typeFilter.applyToFilter(filter, val.asNode());

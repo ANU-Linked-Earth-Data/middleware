@@ -61,7 +61,7 @@ public class LatLonBoxProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Node> valuesForObservation(Observation obs) {
+	public Stream<Node> valuesForObservation(Observation obs, String qbDatasetURI) {
 		// Could return an empty stream, but I think it's better to break
 		// entirely. This code really should never be called.
 		throw new RuntimeException("Property is internal, and not intended "

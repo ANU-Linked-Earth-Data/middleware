@@ -21,7 +21,7 @@ public class TimeProperty implements ObservationProperty {
 	}
 
 	@Override
-	public Stream<Node> valuesForObservation(Observation obs) {
+	public Stream<Node> valuesForObservation(Observation obs, String qbDatasetURI) {
 		return Stream.of(Util.createLiteralNode(getTimestamp(obs)));
 	}
 }
