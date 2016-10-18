@@ -37,6 +37,26 @@ public class Util {
 		return Optional.empty();
 	}
 
+	public static Optional<Integer> toInt(Node node) {
+		if (node.isLiteral()) {
+			String lv = node.getLiteralLexicalForm();
+			try {
+				return Optional.of(Integer.parseInt(lv));
+			} catch (NumberFormatException e) {
+				// try REALLY HARD to parse this integer
+				// attempting to follow principle of least surprise for user
+				Optional<Double> doub = toDouble(node);
+				if (doub.isPresent()) {
+					double val = doub.get();
+					if (Math.abs(val % 1) < 1e-10) {
+						return Optional.of((int) val);
+					}
+				}
+			}
+		}
+		return Optional.empty();
+	}
+
 	private static DateTimeFormatter canonicalFormatter = DateTimeFormatter
 			.ofPattern("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'");
 

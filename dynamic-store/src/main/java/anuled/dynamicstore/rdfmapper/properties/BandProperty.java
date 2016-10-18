@@ -1,5 +1,6 @@
 package anuled.dynamicstore.rdfmapper.properties;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
@@ -23,14 +24,11 @@ public class BandProperty implements ObservationProperty {
 
 	@Override
 	public void applyToFilter(ObservationFilter filter, Node value) {
-		int band;
-		try {
-			String literalValue = value.getLiteral().getLexicalForm();
-			band = Integer.parseInt(literalValue);
-		} catch (UnsupportedOperationException|NumberFormatException e) {
+		Optional<Integer> bandNum = Util.toInt(value);
+		if (bandNum.isPresent()) {
+			filter.constrainBandNum(bandNum.get());
+		} else {
 			filter.constrainImpossibly();
-			return;
 		}
-		filter.constrainBandNum(band);
 	}
 }

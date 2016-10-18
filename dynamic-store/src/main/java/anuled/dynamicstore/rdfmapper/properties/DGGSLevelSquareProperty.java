@@ -1,5 +1,6 @@
 package anuled.dynamicstore.rdfmapper.properties;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
@@ -23,15 +24,12 @@ public class DGGSLevelSquareProperty implements ObservationProperty {
 	
 	@Override
 	public void applyToFilter(ObservationFilter filter, Node value) {
-		int res;
-		try {
-			String strVal = value.getLiteral().getLexicalForm();
-			res = Integer.parseInt(strVal);
-		} catch (UnsupportedOperationException|NumberFormatException e) {
+		Optional<Integer> realVal = Util.toInt(value);
+		if (realVal.isPresent()) {
+			filter.constrainLevel(realVal.get());
+		} else {
 			filter.constrainImpossibly();
-			return;
 		}
-		filter.constrainLevel(res);
 	}
 
 }
