@@ -32,7 +32,12 @@ public class QBCovGraphAssembler extends AssemblerBase {
 	}
 
 	public static void init() {
+		// No, init() is not overriding anything. It's actually called by Fuseki
+		// using some weird (stupid) reflection hacks. Check out
+		// FusekiConfig.loadAndInit() in the Jena source to see what it's
+		// actually doing.
 		if (!initialised) {
+			System.out.println("Initialising graph assembler");
 			Assembler.general.implementWith(LED.QBCovDataset,
 					new QBCovGraphAssembler());
 
@@ -78,7 +83,14 @@ public class QBCovGraphAssembler extends AssemblerBase {
 				}
 			});
 
+			// DAMMIT JENA WHAT'D I TELL YOU ABOUT MESSING WITH MA FILTERS?!
+			// See #13 (Github issue) for context (pun intended)
+			ARQ.getContext().set(ARQ.optFilterPlacement, false);
+			ARQ.getContext().set(ARQ.optFilterPlacementConservative, false);
+			ARQ.getContext().set(ARQ.optFilterPlacementBGP, false);
+
 			initialised = true;
+			System.out.println("Graph assembler initialised");
 		}
 	}
 

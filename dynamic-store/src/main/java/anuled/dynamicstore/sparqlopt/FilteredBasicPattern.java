@@ -29,7 +29,9 @@ class FilteredBasicPattern extends BasicPattern {
 	}
 
 	public void addExprList(ExprList list) {
-		for (Expr expr : list) {
+		// splitConjunction turns [a && b && c] into [a, b, c] (which is the
+		// whole point of an ExprList anyway…).
+		for (Expr expr : ExprList.splitConjunction(list)) {
 			InequalityConstraint.fromExpr(expr).ifPresent(constraint -> {
 				// Ensure that we can look up constraints on specific variables.
 				// Sometimes a constraint will be inserted twice because of this

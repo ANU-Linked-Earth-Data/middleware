@@ -57,6 +57,7 @@ public class TestObservationGraph {
 	@BeforeClass
 	public static void setUpClass() throws IOException {
 		td = new TestData();
+		QBCovGraphAssembler.init();
 	}
 
 	@AfterClass
@@ -196,5 +197,34 @@ public class TestObservationGraph {
 		});
 		Set<String> expectedCells = new HashSet<>(Arrays.asList("R78523"));
 		assertEquals(expectedCells, allCells);
+	}
+	
+	private int countResults(ResultSet results) {
+		int rv = 0;
+		while (results.hasNext()) {
+			results.next();
+			rv++;
+		}
+		return rv;
+	}
+	
+	@Test
+	public void testLiterals() {
+		// test xsd:int vs. xsd:integer weirdness
+		ResultSet results = runSelect("SELECT DISTINCT ?s WHERE {"
+				+ "?s a qb:Observation; led:etmBand 1.}");
+		assertEquals(12, countResults(results));
+		
+		results = runSelect("SELECT DISTINCT ?s WHERE {"
+				+ "?s a qb:Observation; led:etmBand \"1\"^^xsd:int.}");
+		assertEquals(12, countResults(results));
+		
+		results = runSelect("SELECT DISTINCT ?s WHERE {"
+				+ "?s a qb:Observation; led:etmBand \"1\"^^xsd:integer.}");
+		assertEquals(12, countResults(results));
+		
+		results = runSelect("SELECT DISTINCT ?s WHERE {"
+				+ "?s a qb:Observation; led:etmBand \"1.5\"^^xsd:double.}");
+		assertEquals(0, countResults(results));
 	}
 }
